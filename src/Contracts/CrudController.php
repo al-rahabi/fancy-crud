@@ -2,14 +2,26 @@
 
 namespace FancyCrud\Contracts;
 
+use FancyCrud\Excel\Contracts\Exportable;
+use FancyCrud\Excel\Contracts\Importable;
+use FancyCrud\Excel\Traits\ExportTrait;
+use FancyCrud\Excel\Traits\ImportTrait;
 use FancyCrud\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 
-abstract class CrudController extends Controller
+/**
+ * Excel support is built in and optional: set `$excel` to a `BaseExcel` class and
+ * `export()`, `import()` and `importTemplate()` work; leave it null and they
+ * answer 404. Any of those methods (or `exportQuery()`, `createForExcel()`, …)
+ * defined on a concrete controller overrides the default.
+ */
+abstract class CrudController extends Controller implements Exportable, Importable
 {
+    use ExportTrait, ImportTrait;
+
     protected BaseRepository $repository;
 
     protected ?string $resource = null;
@@ -17,6 +29,9 @@ abstract class CrudController extends Controller
     protected ?string $storeRequest = null;
 
     protected ?string $updateRequest = null;
+
+    /** Sheet definition (a FancyCrud\Excel\BaseExcel class) used by ExportTrait / ImportTrait. */
+    protected ?string $excel = null;
 
     public function __construct()
     {

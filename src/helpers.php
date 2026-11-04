@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Storage;
+
 if (! function_exists('assetUrl')) {
     /**
      * Public URL for a stored media path (e.g. a FancyCrud\Casts\MediaCast
@@ -13,6 +15,6 @@ if (! function_exists('assetUrl')) {
             return null;
         }
 
-        return \Illuminate\Support\Facades\Storage::disk(config('fancy-crud.media_disk', 'public'))->url($path);
+        return Storage::disk(config('fancy-crud.media_disk', 'public'))->url($path);
     }
 }
