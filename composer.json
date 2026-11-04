@@ -1,0 +1,52 @@
+{
+    "name": "fancycrud/fancy-crud",
+    "description": "Opinionated abstract building blocks (controllers, services, repositories, actions, policies, resources) for well-structured Laravel CRUD projects.",
+    "keywords": ["laravel", "crud", "repository", "service", "actions", "package"],
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^11.0|^12.0|^13.0",
+        "guzzlehttp/psr7": "^2.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "laravel/pint": "^1.0",
+        "pestphp/pest": "^3.0|^4.0"
+    },
+    "suggest": {
+        "laravel-notification-channels/fcm": "Required to use FancyCrud\\Contracts\\BaseNotification (FCM push notifications)."
+    },
+    "autoload": {
+        "files": [
+            "src/helpers.php"
+        ],
+        "psr-4": {
+            "FancyCrud\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "FancyCrud\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "FancyCrud\\FancyCrudServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "format": "pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,128 @@
+<?php
+
+namespace FancyCrud\Contracts;
+
+use FancyCrud\Repositories\BaseRepository;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
+
+abstract class CrudController extends Controller
+{
+    protected BaseRepository $repository;
+
+    protected ?string $resource = null;
+
+    protected ?string $storeRequest = null;
+
+    protected ?string $updateRequest = null;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->repository = $this->repository();
+    }
+
+    /**
+     * Resolve the repository that builds this controller's index/show queries.
+     * Each concrete controller must supply its own repository instance.
+     */
+    abstract protected function repository(): BaseRepository;
+
+    public function index(): JsonResponse
+    {
+        $this->authorizeIndex();
+
+        $data = $this->repository->index();
+
+        $items = $this->resource::makeCollection(
+            $data instanceof LengthAwarePaginator ? $data->getCollection() : $data,
+            $this->service->getUser(),
+            false,
+            $this->getPlatform()
+        );
+        $meta = [];
+
+        if ($data instanceof LengthAwarePaginator) {
+            $meta = Arr::only($data->toArray(), ['current_page', 'total', 'per_page', 'last_page']);
+            $meta['pages_count'] = $meta['last_page'];
+        }
+
+        return $this->success($items['data'] ?? $items ?? [], meta: $meta);
+    }
+
+    /**
+     * Overridable so a subresource over a shared model (e.g. Student/
+     * Supervisor/Parent, all App\Models\Dashboard\Auth\User) can swap this
+     * for a bare permission-string check instead — a Policy keyed on a
+     * shared model would gate every account kind through the same check.
+     * See .ai/rules/controllers.md.
+     */
+    protected function authorizeIndex(): void
+    {
+        $this->authorize('index', $this->repository->getModel());
+    }
+
+    protected function authorizeShow(Model $item): void
+    {
+        $this->authorize('show', $item);
+    }
+
+    public function formatItem(Model $item)
+    {
+        return $this->resource::makeWithDetail(
+            $item,
+            $this->service->getUser(),
+            true,
+            $this->getPlatform()
+        );
+    }
+
+    public function show(int|string $id): JsonResponse
+    {
+        $item = $this->repository->find($id);
+
+        if (is_null($item)) {
+            return $this->notFound();
+        }
+
+        $this->authorizeshow($item);
+
+        return $this->success($this->formatItem($item));
+    }
+
+    public function store(): JsonResponse
+    {
+        $data = app($this->storeRequest)->validated();
+        $item = $this->service->store($data);
+
+        return $this->success($this->formatItem($item), 201);
+    }
+
+    public function update(int|string $id): JsonResponse
+    {
+        $data = app($this->updateRequest)->validated();
+        $item = $this->service->update($id, $data);
+
+        if (is_null($item)) {
+            return $this->notFound();
+        }
+
+        return $this->success($this->formatItem($item));
+    }
+
+    public function destroy(int|string $id): JsonResponse
+    {
+        $result = $this->service->destroy($id);
+
+        if (!$result) {
+            return $this->notFound();
+        }
+
+        return $this->success();
+    }
+
+    abstract public function getPlatform(): string;
+}
