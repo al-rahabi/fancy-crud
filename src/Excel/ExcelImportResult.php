@@ -10,28 +10,33 @@ namespace FancyCrud\Excel;
 class ExcelImportResult
 {
     protected int $imported = 0;
+
     protected int $skipped = 0;
+
     protected array $errors = [];
 
     public function addImported(int $count = 1): static
     {
         $this->imported += $count;
+
         return $this;
     }
 
     public function addSkipped(int $count = 1): static
     {
         $this->skipped += $count;
+
         return $this;
     }
 
     /**
-     * @param int $line 1-based line number as seen in the spreadsheet
-     * @param array<string, string[]> $messages attribute => messages
+     * @param  int  $line  1-based line number as seen in the spreadsheet
+     * @param  array<string, string[]>  $messages  attribute => messages
      */
     public function addError(int $line, array $messages): static
     {
         $this->errors[] = ['line' => $line, 'messages' => $messages];
+
         return $this;
     }
 

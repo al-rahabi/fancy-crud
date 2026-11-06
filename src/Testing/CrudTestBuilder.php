@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace FancyCrud\Testing;
 
 use Closure;
+use FancyCrud\Contracts\CrudController;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Testing\TestResponse;
 
 /**
  * Declarative generator for the standard CRUD endpoint test-suite of a
- * {@see \FancyCrud\Contracts\CrudController}.
+ * {@see CrudController}.
  *
  * A single `crudTest('posts')->model(Post::class)-> ... ->run()` call at the top
  * of a Pest test file expands into one `test()` per requested verb. Pest resolves
@@ -34,7 +36,7 @@ class CrudTestBuilder
     // Properties are public: the generated test closures are bound to the test
     // case, not to this class, so they can only reach public members of $cfg.
 
-    /** @var class-string<\Illuminate\Database\Eloquent\Model> */
+    /** @var class-string<Model> */
     public string $model;
 
     public string $baseUrl = '/api';
@@ -99,7 +101,7 @@ class CrudTestBuilder
         return new self($resource);
     }
 
-    /** @param class-string<\Illuminate\Database\Eloquent\Model> $model */
+    /** @param class-string<Model> $model */
     public function model(string $model): self
     {
         $this->model = $model;
@@ -226,7 +228,7 @@ class CrudTestBuilder
      * Rows of the sheet the `import` verb uploads (as CSV). The first row holds
      * the column labels, every other row is imported.
      *
-     * @param list<list<string|int|float|null>> $rows
+     * @param  list<list<string|int|float|null>>  $rows
      */
     public function importRows(array $rows, array|Closure $fields = []): self
     {

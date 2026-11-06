@@ -2,9 +2,9 @@
 
 namespace FancyCrud\Excel;
 
+use Closure;
 use FancyCrud\Excel\Enums\ExcelColumnSource;
 use FancyCrud\Excel\Enums\ExcelColumnType;
-use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -35,18 +35,31 @@ use Illuminate\Validation\Rule;
 class ExcelHeader
 {
     protected string $key;
+
     protected string $label;
+
     protected ExcelColumnSource $source = ExcelColumnSource::COLUMN;
+
     protected ExcelColumnType $type = ExcelColumnType::TEXT;
+
     protected ?string $attribute = null;
+
     protected ?Closure $using = null;
+
     protected ?Closure $queryUsing = null;
+
     protected ?Closure $importUsing = null;
+
     protected array $rules = [];
+
     protected array $options = [];
+
     protected bool $exportable = true;
+
     protected bool $importable = true;
+
     protected bool $required = false;
+
     protected mixed $example = null;
 
     public function __construct(string $key, ?string $label = null)
@@ -81,7 +94,7 @@ class ExcelHeader
      * A value produced by the query itself — `withCount`, `selectSub`, a join alias.
      * The closure receives the export query and must return it.
      *
-     * @param Closure(Builder): Builder $query
+     * @param  Closure(Builder): Builder  $query
      */
     public static function query(string $key, ?string $label, Closure $query): static
     {
@@ -91,7 +104,7 @@ class ExcelHeader
     /**
      * A value computed in PHP from the model.
      *
-     * @param Closure(Model): mixed $using
+     * @param  Closure(Model): mixed  $using
      */
     public static function calculated(string $key, ?string $label, Closure $using): static
     {
@@ -101,12 +114,14 @@ class ExcelHeader
     public function source(ExcelColumnSource $source): static
     {
         $this->source = $source;
+
         return $this;
     }
 
     public function type(ExcelColumnType $type): static
     {
         $this->type = $type;
+
         return $this;
     }
 
@@ -118,24 +133,27 @@ class ExcelHeader
     public function attribute(string $attribute): static
     {
         $this->attribute = $attribute;
+
         return $this;
     }
 
     /**
-     * @param Closure(Model): mixed $using
+     * @param  Closure(Model): mixed  $using
      */
     public function using(Closure $using): static
     {
         $this->using = $using;
+
         return $this;
     }
 
     /**
-     * @param Closure(Builder): Builder $query
+     * @param  Closure(Builder): Builder  $query
      */
     public function queryUsing(Closure $query): static
     {
         $this->queryUsing = $query;
+
         return $this;
     }
 
@@ -143,17 +161,19 @@ class ExcelHeader
      * Translate the raw cell into the value stored on the model. Receives the cast
      * cell value and the whole mapped row.
      *
-     * @param Closure(mixed, array): mixed $using
+     * @param  Closure(mixed, array): mixed  $using
      */
     public function importUsing(Closure $using): static
     {
         $this->importUsing = $using;
+
         return $this;
     }
 
     public function rules(array $rules): static
     {
         $this->rules = $rules;
+
         return $this;
     }
 
@@ -164,30 +184,35 @@ class ExcelHeader
     public function options(array $options): static
     {
         $this->options = $options;
+
         return $this;
     }
 
     public function required(bool $required = true): static
     {
         $this->required = $required;
+
         return $this;
     }
 
     public function exportable(bool $exportable = true): static
     {
         $this->exportable = $exportable;
+
         return $this;
     }
 
     public function importable(bool $importable = true): static
     {
         $this->importable = $importable;
+
         return $this;
     }
 
     public function example(mixed $example): static
     {
         $this->example = $example;
+
         return $this;
     }
 
@@ -314,8 +339,8 @@ class ExcelHeader
      */
     public function exampleValue(): string
     {
-        if (!is_null($this->example)) {
-            return (string)$this->example;
+        if (! is_null($this->example)) {
+            return (string) $this->example;
         }
 
         if ($this->options !== []) {

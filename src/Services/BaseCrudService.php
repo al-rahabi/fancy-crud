@@ -6,9 +6,9 @@ use FancyCrud\Actions\Crud\CreateAction;
 use FancyCrud\Actions\Crud\DestroyAction;
 use FancyCrud\Actions\Crud\UpdateAction;
 use FancyCrud\Repositories\BaseRepository;
+use FancyCrud\Support\PermissionName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use FancyCrud\Support\PermissionName;
 
 /**
  * Owns the write side of a resource: create/update/delete orchestration and the

@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace FancyCrud\Support;
 
+use FancyCrud\Contracts\BasePolicy;
+use FancyCrud\Services\BaseCrudService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
  * The single place that derives permission names, shared by the write side
- * ({@see \FancyCrud\Services\BaseCrudService}) and the read side
- * ({@see \FancyCrud\Contracts\BasePolicy}) so they cannot drift apart.
+ * ({@see BaseCrudService}) and the read side
+ * ({@see BasePolicy}) so they cannot drift apart.
  *
  * `BlogPost` → resource `blog posts` → permission `update blog posts`.
  */

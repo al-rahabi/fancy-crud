@@ -22,8 +22,11 @@ class ExcelExportManager
 
     /** @var ExcelHeader[] */
     protected array $headers = [];
+
     protected ?Builder $query = null;
+
     protected string $fileName = 'export';
+
     protected int $chunkSize = 500;
 
     public function forController(Exportable $controller): static
@@ -40,29 +43,33 @@ class ExcelExportManager
     }
 
     /**
-     * @param ExcelHeader[] $headers
+     * @param  ExcelHeader[]  $headers
      */
     public function headers(array $headers): static
     {
-        $this->headers = array_values(array_filter($headers, fn($header) => $header instanceof ExcelHeader));
+        $this->headers = array_values(array_filter($headers, fn ($header) => $header instanceof ExcelHeader));
+
         return $this;
     }
 
     public function query(?Builder $query): static
     {
         $this->query = $query;
+
         return $this;
     }
 
     public function fileName(string $fileName): static
     {
         $this->fileName = $fileName;
+
         return $this;
     }
 
     public function chunk(int $chunkSize): static
     {
         $this->chunkSize = max(1, $chunkSize);
+
         return $this;
     }
 
@@ -106,7 +113,7 @@ class ExcelExportManager
      */
     protected function exportableHeaders(): array
     {
-        return array_values(array_filter($this->headers, fn(ExcelHeader $header) => $header->isExportable()));
+        return array_values(array_filter($this->headers, fn (ExcelHeader $header) => $header->isExportable()));
     }
 
     /**
@@ -114,7 +121,7 @@ class ExcelExportManager
      */
     protected function importableHeaders(): array
     {
-        return array_values(array_filter($this->headers, fn(ExcelHeader $header) => $header->isImportable()));
+        return array_values(array_filter($this->headers, fn (ExcelHeader $header) => $header->isImportable()));
     }
 
     protected function buildQuery(): Builder

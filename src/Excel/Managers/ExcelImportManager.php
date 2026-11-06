@@ -25,7 +25,9 @@ class ExcelImportManager
     use Makeable;
 
     protected Importable $controller;
+
     protected int $chunkSize = 500;
+
     protected ?int $limit = null;
 
     public function forController(Importable $controller): static
@@ -38,6 +40,7 @@ class ExcelImportManager
     public function chunk(int $chunkSize): static
     {
         $this->chunkSize = max(1, $chunkSize);
+
         return $this;
     }
 
@@ -48,17 +51,18 @@ class ExcelImportManager
     public function limit(?int $limit): static
     {
         $this->limit = $limit;
+
         return $this;
     }
 
     /**
-     * @param UploadedFile|string $file the upload, or a path on the given disk
-     * @param string|null $readerType one of the Maatwebsite\Excel\Excel constants;
-     *                                only needed when the path has no extension
+     * @param  UploadedFile|string  $file  the upload, or a path on the given disk
+     * @param  string|null  $readerType  one of the Maatwebsite\Excel\Excel constants;
+     *                                   only needed when the path has no extension
      */
     public function import(UploadedFile|string $file, ?string $readerType = null, ?string $disk = null): ExcelImportResult
     {
-        $result = new ExcelImportResult();
+        $result = new ExcelImportResult;
 
         Excel::import(
             new ResourceImport($this->controller, $result, $this->chunkSize, $this->limit),

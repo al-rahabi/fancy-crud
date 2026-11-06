@@ -20,11 +20,12 @@ Properties to set in the concrete class:
 Abstract methods to implement: `service()`, `repository(): BaseRepository`, `getPlatform(): string`
 (forwarded to resources so they can switch shapes per client).
 
-Public actions: `index`, `show($id)`, `store`, `update($id)`, `destroy($id)`, plus `export`, `import`, `importTemplate` from the traits.
+Public actions: `index`, `show($id)`, `store`, `update($id)`, `destroy($id)`, `bulk` (404 unless the repository has `$bulkActions`),
+plus `export`, `import`, `importTemplate` from the traits. `index` returns table rows (no Resource) when the repository has a `$table`.
 Overridable seams: `authorizeIndex()` (swap the policy check for a permission-string check when a shared model makes
 policies ambiguous), `authorizeShow($item)`, `formatItem($item)`.
 
-Routing note: register `export`, `import/template`, `import` **before** `apiResource` so `{id}` does not capture them.
+Routing note: register `export`, `import/template`, `import`, `bulk` (`Route::post('posts/bulk', …)`) **before** `apiResource` so `{id}` does not capture them.
 The fixtures use `->parameters(['posts' => 'id'])` so the route parameter is named `id`.
 
 ## `BaseRequest` (extends `FormRequest`)

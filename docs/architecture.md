@@ -30,6 +30,9 @@ update/destroy; eager-loaded relations belong to the repository.
 | `Traits/` | support / http | `ResponseTrait`, `PaginationMetaTrait`, `Activable`, `Sortable`, `HasSlug`, `Makeable` |
 | `Middleware/` | http | `AcceptedLanguagesMiddleware` |
 | `Casts/` | support | `MediaCast` |
+| `Filters/` | crud-core | `BaseFilters`, `Filter`, `FilterSet` |
+| `Table/` | table | `BaseTable`, `Column` |
+| `Bulk/` | bulk | `BulkAction`, `HandlesByQuery/Sync/Job`, `BulkRunner`, `BulkActionJob` |
 | `Excel/` | excel | `BaseExcel`, `ExcelHeader`, `ExcelImportResult`, `Contracts/`, `Enums/`, `Exports/`, `Imports/`, `Managers/`, `Traits/` |
 | `Support/` | authorization | `PermissionName` (shared permission-name derivation) |
 | `Permissions/` | authorization | `PermissionSyncer` |

@@ -2,8 +2,8 @@
 
 namespace FancyCrud\Excel\Exports;
 
-use FancyCrud\Excel\ExcelHeader;
 use DateTimeInterface;
+use FancyCrud\Excel\ExcelHeader;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Maatwebsite\Excel\Concerns\FromQuery;
@@ -23,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * `FromQuery` makes Excel read the query with `chunk()`, so the export is bounded
  * by the chunk size rather than by the number of rows.
  */
-class ResourceExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, WithCustomChunkSize, ShouldAutoSize
+class ResourceExport implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithCustomChunkSize, WithHeadings, WithMapping, WithStyles
 {
     protected Builder $builder;
 
@@ -33,7 +33,7 @@ class ResourceExport implements FromQuery, WithHeadings, WithMapping, WithColumn
     protected int $chunkSize;
 
     /**
-     * @param ExcelHeader[] $headers
+     * @param  ExcelHeader[]  $headers
      */
     public function __construct(Builder $builder, array $headers, int $chunkSize = 500)
     {
@@ -49,16 +49,16 @@ class ResourceExport implements FromQuery, WithHeadings, WithMapping, WithColumn
 
     public function headings(): array
     {
-        return array_map(fn(ExcelHeader $header) => $header->getLabel(), $this->headers);
+        return array_map(fn (ExcelHeader $header) => $header->getLabel(), $this->headers);
     }
 
     /**
-     * @param Model $row
+     * @param  Model  $row
      */
     public function map($row): array
     {
         return array_map(
-            fn(ExcelHeader $header) => $this->toCellValue($header->exportValue($row)),
+            fn (ExcelHeader $header) => $this->toCellValue($header->exportValue($row)),
             $this->headers
         );
     }

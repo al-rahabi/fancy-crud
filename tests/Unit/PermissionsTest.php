@@ -1,8 +1,8 @@
 <?php
 
 use FancyCrud\Permissions\PermissionSyncer;
-use FancyCrud\Tests\Unit\Fixtures\PermUser;
 use FancyCrud\Testing\InteractsWithPermissions;
+use FancyCrud\Tests\Unit\Fixtures\PermUser;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 

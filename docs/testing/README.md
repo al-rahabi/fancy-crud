@@ -44,4 +44,12 @@ Bind a directory in `tests/Pest.php`: `pest()->extend(CrudTestCase::class)->in('
 - `phpunit.xml` also has a `Unit` suite (`tests/Unit`) bound to `tests/SupportTestCase.php`: lightweight Testbench app with Spatie tables (stub migration), `users` and `toggles` tables.
   `PermissionsTest` covers the syncer (multi-guard, main role, pruning, idempotency), the command and `InteractsWithPermissions`;
   `SupportTest` covers `Activable`, `PermissionName`, lazy service user, response messages, middleware locales, notification data and `MediaCast`.
-  Fixtures live in `tests/Unit/Fixtures/`. Total: 30 tests (16 Feature + 14 Unit).
+  Fixtures live in `tests/Unit/Fixtures/`.
+- `tests/Feature/FiltersTest.php`: `BaseFilters`/`Filter` through `PostRepository` (`PostFilters`).
+- `tests/Feature/TableTest.php`: the table builder on `table-posts` (`PostTable`, `PostTableRepository`, `PostTableController`, models `Author`/`Comment`):
+  default and requested fields, query shape via the query log (selected columns, eager loads, counts), every column type, relation/count/getter/path
+  values, ordering (plain, string, closure, count, non-orderable), column/table/repository filters, `describe()` meta, authorization.
+- `tests/Feature/BulkActionTest.php`: bulk actions (`PublishBulkAction` query, `DeleteBulkAction` sync, `ArchiveBulkAction` job) — selection kinds and their
+  validation, extra data, the three modes (`Queue::fake()` and the sync queue), authorization, 404 without actions.
+- `TestCase` also creates `authors`/`comments` tables and extra `posts` columns (`status`, `is_active`, `image`, `meta`, `author_id`); route `posts/bulk`
+  (no actions ⇒ 404) and `table-posts` (+ `/bulk`). Run `composer test` for the current total (110 tests).

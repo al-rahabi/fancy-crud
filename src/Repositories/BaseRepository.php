@@ -2,10 +2,13 @@
 
 namespace FancyCrud\Repositories;
 
+use FancyCrud\Bulk\BulkAction;
+use FancyCrud\Filters\BaseFilters;
+use FancyCrud\Filters\FilterSet;
+use FancyCrud\Table\BaseTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 /**
@@ -29,9 +32,80 @@ abstract class BaseRepository
 
     protected array $showCountRelation = [];
 
+    /**
+     * @var class-string<BaseFilters>|null
+     */
+    protected ?string $filters = null;
+
+    /**
+     * @var class-string<BaseTable>|null
+     */
+    protected ?string $table = null;
+
+    /**
+     * @var array<int, class-string<BulkAction>>
+     */
+    protected array $bulkActions = [];
+
+    private ?BaseTable $tableInstance = null;
+
+    /**
+     * The model: `$model`, or the table's when only the table declares one.
+     */
     public function getModel(): string
     {
+        if ($this->model === Model::class && $this->table()?->model()) {
+            return $this->table()->model();
+        }
+
         return $this->model;
+    }
+
+    /**
+     * The table definition of the index, if the resource has one. With a table,
+     * the index query is built from the requested `fields` only.
+     */
+    public function table(): ?BaseTable
+    {
+        if ($this->table === null) {
+            return null;
+        }
+
+        return $this->tableInstance ??= new $this->table;
+    }
+
+    /**
+     * Bulk actions by request name.
+     *
+     * @return array<string, BulkAction>
+     */
+    public function bulkActions(): array
+    {
+        $actions = [];
+        foreach ($this->bulkActions as $class) {
+            $action = new $class;
+            $actions[$action->name()] = $action;
+        }
+
+        return $actions;
+    }
+
+    /**
+     * The query a bulk action runs over: `['ids' => […]]`, `['filters' => […]]` or `['all' => true]`.
+     */
+    public function bulkQuery(array $selection): Builder
+    {
+        $query = $this->globalQuery();
+
+        if (isset($selection['ids'])) {
+            return $query->whereKey($selection['ids']);
+        }
+
+        if (isset($selection['filters'])) {
+            return $this->resolvedFilters()->apply($query, $selection['filters']);
+        }
+
+        return $query;
     }
 
     /**
@@ -92,7 +166,7 @@ abstract class BaseRepository
      */
     public function globalQuery(): Builder
     {
-        return $this->model::query();
+        return $this->getModel()::query();
     }
 
     /**
@@ -109,15 +183,19 @@ abstract class BaseRepository
      */
     public function index(): Collection|LengthAwarePaginator
     {
-        $query = $this->globalQuery()
-            ->with($this->getRelations())
-            ->withCount($this->getCountRelations());
+        $query = $this->globalQuery();
+
+        if ($table = $this->table()) {
+            $table->prepare($query, $table->selected($this->requestedFields()));
+        } else {
+            $query->with($this->getRelations())->withCount($this->getCountRelations());
+        }
 
         $query = $this->applyFilters($query);
         $query = $this->applySearch($query);
         $query = $this->applyOrder($query);
 
-        if ($this->isPaginated() && !$this->forceUnlimited()) {
+        if ($this->isPaginated() && ! $this->forceUnlimited()) {
             return $query->paginate($this->getLimit());
         }
 
@@ -140,7 +218,25 @@ abstract class BaseRepository
      */
     public function searchableArray(): array
     {
-        return (new $this->model)->getFillable();
+        return (new ($this->getModel()))->getFillable();
+    }
+
+    /**
+     * Columns the client asked for (`?fields[]=a&fields[]=b` or `?fields=a,b`).
+     * Only meaningful when the repository has a table.
+     *
+     * @return array<int, string>
+     */
+    public function requestedFields(): array
+    {
+        $fields = request()->input('fields');
+        if (is_string($fields)) {
+            $fields = explode(',', $fields);
+        }
+
+        return is_array($fields)
+            ? array_values(array_filter(array_map('trim', array_filter($fields, 'is_string')), 'strlen'))
+            : [];
     }
 
     public function getSearchTerm(): ?string
@@ -170,29 +266,33 @@ abstract class BaseRepository
     }
 
     /**
-     * Fields available for filtering.
+     * The filters of this resource: an instance of the `$filters` class, or
+     * just the built-in defaults (`forced_items`) when none is set.
      */
-    public function filterFields(): array
+    public function filters(): BaseFilters
     {
-        return [];
+        return $this->filters ? new $this->filters : new class extends BaseFilters {};
+    }
+
+    /**
+     * The repository's filters merged with the table's column filters (the
+     * repository's win on a name clash). This is the set requests are read against.
+     */
+    public function resolvedFilters(): BaseFilters
+    {
+        $filters = $this->filters();
+        $table = $this->table();
+
+        if ($table === null) {
+            return $filters;
+        }
+
+        return (new FilterSet($table->allFilters()))->with(...array_values($filters->all()));
     }
 
     public function requestedFilters(): array
     {
-        $keys = collect($this->defaultFilters())->pluck('name')->toArray();
-        $keys = array_merge($keys, collect($this->filterFields())->pluck('name')->toArray());
-
-        return request()->only($keys);
-    }
-
-    /**
-     * Filters always applied to the index query.
-     */
-    public function defaultFilters(): array
-    {
-        return [
-            ['name' => 'forced_items', 'query' => fn(Builder $q, mixed $val) => $q->whereIn('id', Arr::wrap($val))],
-        ];
+        return request()->only($this->resolvedFilters()->names());
     }
 
     protected function applySearch(Builder $query): Builder
@@ -202,7 +302,7 @@ abstract class BaseRepository
             return $query;
         }
 
-        $table = (new $this->model)->getTable();
+        $table = (new ($this->getModel()))->getTable();
         $query->where(function (Builder $subQuery) use ($keyword, $table): void {
             foreach ($this->searchableArray() as $fieldName) {
                 if (str_contains($fieldName, '.')) {
@@ -214,7 +314,7 @@ abstract class BaseRepository
                      * it with the OUTER model's table name would reference a
                      * column that doesn't exist there.
                      */
-                    $subQuery->orWhereRelation($relation, fn(Builder $qq) => $qq->where($field, 'LIKE', "%{$keyword}%"));
+                    $subQuery->orWhereRelation($relation, fn (Builder $qq) => $qq->where($field, 'LIKE', "%{$keyword}%"));
                 } else {
                     $subQuery->orWhere("$table.$fieldName", 'LIKE', "%{$keyword}%");
                 }
@@ -227,52 +327,24 @@ abstract class BaseRepository
 
     protected function applyFilters(Builder $query): Builder
     {
-        $defaultFilters = $this->defaultFilters();
-        $defaultKeys = array_column($defaultFilters, 'name');
-
-        $filteredKeys = array_filter($this->filterFields(), fn($item) => !in_array($item['name'], $defaultKeys));
-
-        $filterFields = array_merge(array_values($filteredKeys), $defaultFilters);
-
-        $requestedFilters = $this->requestedFilters();
-
-        foreach ($filterFields as $filter) {
-            $field = $filter['name'];
-            $value = $filter['value'] ?? $requestedFilters[$filter['name']] ?? null;
-            if (is_null($value)) {
-                continue;
-            }
-
-            $condition = $filter['condition'] ?? '=';
-            $method = $filter['method'] ?? 'where';
-
-            if (isset($filter['relation'])) {
-                $query->whereHas($filter['relation'], fn(Builder $subQuery) => $subQuery->$method($field, $condition, $value));
-            } elseif (isset($filter['query']) && is_callable($filter['query'])) {
-                $query->where(fn(Builder $sub) => call_user_func($filter['query'], $sub, $value));
-            } else {
-                $query->{$method}($field, $condition, $value);
-            }
-        }
-
-        return $query;
+        return $this->resolvedFilters()->apply($query, $this->requestedFilters());
     }
 
     protected function applyOrder(Builder $query): Builder
     {
         $orderBy = $this->requestedOrdering();
-        if (!$orderBy) {
+        if (! $orderBy) {
             return $this->defaultOrdering($query);
         }
 
-        $orderFields = $this->orderingFields();
+        $orderFields = array_merge($this->table()?->orderingFields($query->getModel()) ?? [], $this->orderingFields());
         foreach ($orderBy as $field) {
             $direction = $field['direction'] ?? 'asc';
             if (isset($orderFields[$field['name']])) {
                 $orderField = $orderFields[$field['name']];
                 $query = match (true) {
-                    is_callable($orderField) => call_user_func($orderField, $query, $direction),
                     is_string($orderField) => $query->orderBy($orderField, $direction),
+                    is_callable($orderField) => call_user_func($orderField, $query, $direction),
                     is_array($orderField) => $query->orderBy($orderField['field'], $orderField['direction'] ?? $direction),
                 };
             }

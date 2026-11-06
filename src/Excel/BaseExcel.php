@@ -96,7 +96,7 @@ abstract class BaseExcel
      * columns, say — adjusts itself here; `headers()` and `rules()` are read again
      * afterwards.
      *
-     * @param array<int, mixed> $cells the raw first row of the file
+     * @param  array<int, mixed>  $cells  the raw first row of the file
      */
     public function withHeadingRow(array $cells): void
     {
@@ -210,9 +210,9 @@ abstract class BaseExcel
      */
     protected function splitList(?string $value): Collection
     {
-        return collect(preg_split('/[|,]/', (string)$value))
-            ->map(fn($entry) => trim($entry))
-            ->filter(fn($entry) => $entry !== '')
+        return collect(preg_split('/[|,]/', (string) $value))
+            ->map(fn ($entry) => trim($entry))
+            ->filter(fn ($entry) => $entry !== '')
             ->values();
     }
 

@@ -7,4 +7,6 @@ use FancyCrud\Repositories\BaseRepository;
 class PostRepository extends BaseRepository
 {
     protected string $model = Post::class;
+
+    protected ?string $filters = PostFilters::class;
 }

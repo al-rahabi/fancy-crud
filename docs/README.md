@@ -17,6 +17,8 @@ Written for AI agents and new contributors. Read in this order:
 | 6 | [excel/](excel/README.md) | `BaseExcel`, `ExcelHeader`, export/import managers and result object |
 | 7 | [testing/](testing/README.md) | `crudTest()` builder, `InteractsWithCrud`, `InteractsWithPermissions`, package's own tests |
 | 8 | [support/](support/README.md) | Traits, casts, enums, helpers, notification, config |
-| 9 | [guides/](guides/README.md) | How to add a resource end to end, extension points, behaviours worth knowing |
+| 9 | [table/](table/README.md) | `BaseTable` + `Column`: column-driven index built from the requested `fields` |
+| 10 | [bulk/](bulk/README.md) | `BulkAction` (query / sync / job), `BulkRunner`, `POST {resource}/bulk` |
+| 11 | [guides/](guides/README.md) | How to add a resource end to end, extension points, behaviours worth knowing |
 
 Source of truth is always the code under `src/`; these docs describe it as of the current commit.

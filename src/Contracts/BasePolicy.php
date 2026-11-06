@@ -2,10 +2,10 @@
 
 namespace FancyCrud\Contracts;
 
+use FancyCrud\Support\PermissionName;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use FancyCrud\Support\PermissionName;
 
 class BasePolicy
 {

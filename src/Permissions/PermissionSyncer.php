@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace FancyCrud\Permissions;
 
+use FancyCrud\Contracts\BasePolicy;
 use Illuminate\Support\Collection;
+use Spatie\Permission\Contracts\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Keeps the database permissions of each guard identical to the definition in
- * config: the "{action} {resource}" permissions {@see \FancyCrud\Contracts\BasePolicy}
+ * config: the "{action} {resource}" permissions {@see BasePolicy}
  * checks, one set per guard.
  *
  * Syncing a guard:
@@ -56,7 +58,7 @@ class PermissionSyncer
 
     /**
      * @param  array{resources?: array, actions?: array, roles?: array, main_role?: string|false|null}  $definition
-     * @return Collection<int, \Spatie\Permission\Contracts\Permission> the guard's permissions after the sync
+     * @return Collection<int, Permission> the guard's permissions after the sync
      */
     public function syncGuard(string $guard, array $definition): Collection
     {

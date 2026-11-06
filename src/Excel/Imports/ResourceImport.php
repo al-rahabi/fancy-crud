@@ -37,7 +37,9 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
     protected array $headers = [];
 
     protected ExcelImportResult $result;
+
     protected int $chunkSize;
+
     protected ?int $rowLimit;
 
     /** @var array<int, ExcelHeader> column index => header */
@@ -45,6 +47,7 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
 
     /** Built once per run, not once per row. */
     protected array $rules = [];
+
     protected array $labels = [];
 
     protected int $processed = 0;
@@ -69,19 +72,21 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
 
         if ($this->columns === []) {
             $this->mapColumns($values);
+
             return;
         }
 
         if ($this->isEmptyRow($values)) {
             $this->result->addSkipped();
+
             return;
         }
 
-        if (!is_null($this->rowLimit) && $this->processed >= $this->rowLimit) {
+        if (! is_null($this->rowLimit) && $this->processed >= $this->rowLimit) {
             return;
         }
 
-        ++$this->processed;
+        $this->processed++;
         $this->processRow($row->getIndex(), $values);
     }
 
@@ -112,7 +117,7 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
 
         $this->headers = array_values(array_filter(
             $this->controller->getHeaders(),
-            fn($header) => $header instanceof ExcelHeader && $header->isImportable()
+            fn ($header) => $header instanceof ExcelHeader && $header->isImportable()
         ));
         $this->rules = $this->controller->importRules();
 
@@ -123,7 +128,7 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
         }
 
         foreach ($firstRow as $index => $value) {
-            $candidate = $this->normalize(is_scalar($value) ? (string)$value : '');
+            $candidate = $this->normalize(is_scalar($value) ? (string) $value : '');
 
             if ($candidate !== '' && isset($byName[$candidate])) {
                 $this->columns[$index] = $byName[$candidate];
@@ -147,6 +152,7 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
 
         if ($validator->fails()) {
             $this->result->addError($line, $validator->errors()->toArray());
+
             return;
         }
 
@@ -154,6 +160,7 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
             DB::transaction(function () use ($data) {
                 if (method_exists($this->controller, 'createForExcel')) {
                     $this->controller->createForExcel($data);
+
                     return;
                 }
 
@@ -192,7 +199,7 @@ class ResourceImport implements OnEachRow, WithChunkReading, WithLimit
     protected function isEmptyRow(array $values): bool
     {
         foreach ($values as $value) {
-            if (!is_null($value) && (!is_string($value) || trim($value) !== '')) {
+            if (! is_null($value) && (! is_string($value) || trim($value) !== '')) {
                 return false;
             }
         }

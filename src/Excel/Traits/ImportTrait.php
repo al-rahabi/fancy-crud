@@ -59,8 +59,8 @@ trait ImportTrait
             'file' => [
                 'required',
                 'file',
-                'extensions:' . implode(',', $this->importExtensions),
-                'max:' . $this->importMaxSize,
+                'extensions:'.implode(',', $this->importExtensions),
+                'max:'.$this->importMaxSize,
             ],
             ...$excel->requestRules(),
         ]);
@@ -90,7 +90,7 @@ trait ImportTrait
 
         return ExcelExportManager::make()
             ->headers($this->getHeaders())
-            ->fileName($this->excelFileName() . '-template')
+            ->fileName($this->excelFileName().'-template')
             ->downloadTemplate();
     }
 

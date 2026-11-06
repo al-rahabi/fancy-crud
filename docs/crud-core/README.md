@@ -50,8 +50,15 @@ Owns the **read** side. Configuration properties:
 | `$indexRelation` / `$indexCountRelation` | `[]` | `with()` / `withCount()` for index |
 | `$showRelation` / `$showCountRelation` | `[]` | extra for show (show relations are merged with index relations) |
 
+| `$filters` | `null` | `BaseFilters` class of the resource (see Filters below) |
+| `$table` | `null` | `BaseTable` class: column-driven index, see [table](../table/README.md) |
+| `$bulkActions` | `[]` | `BulkAction` classes served by `POST …/bulk`, see [bulk](../bulk/README.md) |
+
+Extra seams: `table()`, `requestedFields()` (`?fields`), `resolvedFilters()` (repository + table filters), `bulkActions()`,
+`bulkQuery(array $selection)`, `getModel()` (falls back to the table's model when `$model` is not set).
+
 Query hooks to override: `globalQuery()`, `customShowQuery(Builder)`, `searchableArray()`, `defaultOrdering(Builder)`,
-`orderingFields()`, `filterFields()`, `defaultFilters()`, plus request accessors `getLimit()`, `forceUnlimited()`
+`orderingFields()`, `filters()`, plus request accessors `getLimit()`, `forceUnlimited()`
 (`?unlimited`), `getSearchTerm()` (`?search`), `requestedOrdering()` (`?order_by[]`), `requestedFilters()`.
 
 ### Search
@@ -59,10 +66,20 @@ Query hooks to override: `globalQuery()`, `customShowQuery(Builder)`, `searchabl
 `relation.field` entries search through `orWhereRelation`; also `orWhere(table.id = term)`.
 
 ### Filters
-`filterFields()` returns arrays; each filter supports keys:
-`name` (request key and default column), `value` (fixed value), `condition` (default `=`), `method` (default `where`, e.g. `whereDate`),
-`relation` (apply through `whereHas`), `query` (callable `fn(Builder, $value)` wrapped in a `where` group).
-Default filter `forced_items` → `whereIn('id', …)`. Filters with a null value are skipped.
+Filters are classes: extend `FancyCrud\Filters\BaseFilters`, return `Filter` objects from `filters()`, and set the repository's
+`protected ?string $filters = PostFilters::class`.
+
+```php
+Filter::make('status');                              // where status = ?status
+Filter::make('title')->condition('LIKE');            // where title LIKE ?title
+Filter::make('created_at')->method('whereDate');
+Filter::make('name')->relation('author');            // whereHas('author', …)
+Filter::make('mine')->using(fn ($q, $v) => …);       // callback wrapped in a `where` group
+Filter::make('type')->value('post');                 // fixed value, wins over the request
+```
+`name` is the request key and column. Built-in `forced_items` → `whereIn('id', …)` (override by declaring a filter with the same
+name, or override `defaults()`). Filters with a null value are skipped; only declared names are read from the request.
+Override `repository->filters()` to build the filter set dynamically.
 
 ### Ordering
 `?order_by[0][name]=title&order_by[0][direction]=desc`. Only names declared in `orderingFields()` are honoured; each entry

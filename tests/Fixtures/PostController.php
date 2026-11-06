@@ -19,12 +19,12 @@ class PostController extends CrudController
 
     protected function service(): BaseService|BaseCrudService
     {
-        return new PostService();
+        return new PostService;
     }
 
     protected function repository(): BaseRepository
     {
-        return new PostRepository();
+        return new PostRepository;
     }
 
     public function getPlatform(): string

@@ -13,13 +13,13 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * The blank sheet handed to the customer: the labelled columns of every
  * importable header plus one example row showing the expected shape.
  */
-class TemplateExport implements FromArray, WithHeadings, WithStyles, ShouldAutoSize
+class TemplateExport implements FromArray, ShouldAutoSize, WithHeadings, WithStyles
 {
     /** @var ExcelHeader[] */
     protected array $headers;
 
     /**
-     * @param ExcelHeader[] $headers
+     * @param  ExcelHeader[]  $headers
      */
     public function __construct(array $headers)
     {
@@ -28,13 +28,13 @@ class TemplateExport implements FromArray, WithHeadings, WithStyles, ShouldAutoS
 
     public function headings(): array
     {
-        return array_map(fn(ExcelHeader $header) => $header->getLabel(), $this->headers);
+        return array_map(fn (ExcelHeader $header) => $header->getLabel(), $this->headers);
     }
 
     public function array(): array
     {
         return [
-            array_map(fn(ExcelHeader $header) => $header->exampleValue(), $this->headers),
+            array_map(fn (ExcelHeader $header) => $header->exampleValue(), $this->headers),
         ];
     }
 

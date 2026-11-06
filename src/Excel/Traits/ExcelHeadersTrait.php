@@ -3,6 +3,7 @@
 namespace FancyCrud\Excel\Traits;
 
 use FancyCrud\Excel\BaseExcel;
+use FancyCrud\Excel\ExcelHeader;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -27,10 +28,10 @@ trait ExcelHeadersTrait
     public function excel(): BaseExcel
     {
         if (is_null($this->excel)) {
-            throw new RuntimeException(static::class . ' uses the Excel traits but declares no $excel class.');
+            throw new RuntimeException(static::class.' uses the Excel traits but declares no $excel class.');
         }
 
-        return $this->excelInstance ??= new $this->excel();
+        return $this->excelInstance ??= new $this->excel;
     }
 
     /**
@@ -46,7 +47,7 @@ trait ExcelHeadersTrait
     }
 
     /**
-     * @return \FancyCrud\Excel\ExcelHeader[]
+     * @return ExcelHeader[]
      */
     public function getHeaders(): array
     {

@@ -2,9 +2,9 @@
 
 namespace FancyCrud\Excel\Enums;
 
-use FancyCrud\Contracts\BaseEnumTrait;
 use Carbon\Carbon;
 use DateTimeInterface;
+use FancyCrud\Contracts\BaseEnumTrait;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use Throwable;
@@ -26,6 +26,7 @@ enum ExcelColumnType: string
     case DATETIME = 'datetime';
 
     public const DATE_FORMAT = 'Y-m-d';
+
     public const DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
@@ -39,11 +40,11 @@ enum ExcelColumnType: string
         }
 
         return match ($this) {
-            self::TEXT => is_scalar($value) ? (string)$value : json_encode($value, JSON_UNESCAPED_UNICODE),
-            self::INTEGER => is_numeric($value) ? (int)$value : (string)$value,
-            self::DECIMAL => is_numeric($value) ? (float)$value : (string)$value,
-            self::BOOLEAN => (bool)$value,
-            self::DATE, self::DATETIME => $this->toDate($value) ?? (string)$value,
+            self::TEXT => is_scalar($value) ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE),
+            self::INTEGER => is_numeric($value) ? (int) $value : (string) $value,
+            self::DECIMAL => is_numeric($value) ? (float) $value : (string) $value,
+            self::BOOLEAN => (bool) $value,
+            self::DATE, self::DATETIME => $this->toDate($value) ?? (string) $value,
         };
     }
 
@@ -80,9 +81,9 @@ enum ExcelColumnType: string
         }
 
         return match ($this) {
-            self::TEXT => (string)$value,
-            self::INTEGER => is_numeric($value) ? (int)$value : $value,
-            self::DECIMAL => is_numeric($value) ? (float)$value : $value,
+            self::TEXT => (string) $value,
+            self::INTEGER => is_numeric($value) ? (int) $value : $value,
+            self::DECIMAL => is_numeric($value) ? (float) $value : $value,
             self::BOOLEAN => $this->toBoolean($value),
             self::DATE => $this->toDate($value)?->format(self::DATE_FORMAT) ?? $value,
             self::DATETIME => $this->toDate($value)?->format(self::DATETIME_FORMAT) ?? $value,
@@ -139,7 +140,7 @@ enum ExcelColumnType: string
         // A real date cell read without formatting comes back as an Excel serial.
         if (is_numeric($value)) {
             try {
-                return ExcelDate::excelToDateTimeObject((float)$value);
+                return ExcelDate::excelToDateTimeObject((float) $value);
             } catch (Throwable) {
                 return null;
             }

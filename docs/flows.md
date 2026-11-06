@@ -15,6 +15,18 @@ All controllers extend `FancyCrud\Contracts\CrudController`; the constructor cal
 3. `BaseResource::makeCollection(items, user, detailed=false, platform)`.
 4. Response `data` = items; `meta` = `current_page,total,per_page,last_page,pages_count` for paginators.
 
+**With a table** (`$table` on the repository, see [table](table/README.md)): step 2 becomes `globalQuery()` →
+`BaseTable::prepare()` (select/with/withCount from the requested `fields`, default columns when none) → filters (repository + column
+filters) → search → order (table ordering merged with `orderingFields()`) → paginate. Step 3 becomes `BaseTable::rows()` (no Resource);
+`meta.table` carries `columns`, `selected` and `bulk_actions`.
+
+## bulk — `POST /resource/bulk`
+1. 404 if the repository has no `$bulkActions`.
+2. `BulkRunner::validate()`: `action` known, exactly one of `ids` / `filters` / `all`, `extra` validated with the action's `rules()` (422).
+3. `authorize($action->ability(), $model)` (403).
+4. `BulkRunner::run()`: `query` → `byQuery($query, $extra)`; `sync` → chunked `bySync` per model; `job` → `BulkActionJob` dispatched (chunked `byJob` inside).
+   The selection query comes from `BaseRepository::bulkQuery()`. See [bulk](bulk/README.md).
+
 ## show — `GET /resource/{id}`
 1. `BaseRepository::find($id)` applies `customShowQuery`, show relations (show + index relations) and counts.
 2. `null` → `notFound()` (404, `data: null`).

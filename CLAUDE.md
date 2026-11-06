@@ -26,6 +26,8 @@ Policies/Spatie permissions authorize with `"{action} {resource}"` strings, `Bas
 | authorization | `src/Contracts/BasePolicy`, `src/Permissions`, `src/Console`, `config/fancy-crud.php` (`permissions`) | [docs/authorization](docs/authorization/README.md) |
 | excel | `src/Excel/**` | [docs/excel](docs/excel/README.md) |
 | testing | `src/Testing/**`, `tests/**` | [docs/testing](docs/testing/README.md) |
+| table | `src/Table`, `src/Filters` | [docs/table](docs/table/README.md) |
+| bulk | `src/Bulk` | [docs/bulk](docs/bulk/README.md) |
 | support | `src/Support`, `src/Traits/{Activable,Sortable,HasSlug,Makeable}`, `src/Casts`, `src/helpers.php`, `Contracts/{BaseEnumTrait,BaseNotification}` | [docs/support](docs/support/README.md) |
 | guides | adding a resource, extension points, behaviours to know | [docs/guides](docs/guides/README.md) |
 
@@ -41,12 +43,13 @@ Also: [docs/architecture.md](docs/architecture.md) (layers, provider, dependenci
 - `spatie/laravel-permission` and `laravel-notification-channels/fcm` are **required** dependencies.
 - Permission names come only from `Support/PermissionName`. `PermissionSyncer` deletes undefined permissions of the guards it syncs and gives each guard a main role with all its permissions.
 - New behaviour needs a test; the quickest is extending `tests/Fixtures/*` and `tests/Feature/PostCrudTest.php` (`crudTest()`).
-  Suites: `tests/Feature` (`crudTest` on fixtures) and `tests/Unit` (Spatie + support classes); 30 tests in total.
+  Suites: `tests/Feature` (`crudTest` on fixtures) and `tests/Unit` (Spatie + support classes); see docs/testing for the count.
 - No-user requests skip write authorization on purpose (console/queue use); keep routes behind auth middleware. See [docs/guides](docs/guides/README.md).
 
 ## Where to look
 - A new endpoint verb or response shape → `Contracts/CrudController.php`, `Traits/ResponseTrait.php`.
-- Filtering/search/ordering → `Repositories/BaseRepository.php` (`applyFilters/applySearch/applyOrder`).
+- Filtering/search/ordering → `Repositories/BaseRepository.php` (`applyFilters/applySearch/applyOrder`); filters are `Filters/BaseFilters` + `Filters/Filter` classes.
+- Column-driven index (`fields`, column filters/ordering) → `Table/BaseTable.php`, `Table/Column.php`; bulk endpoint → `Bulk/*`, `CrudController::bulk()`.
 - Write hooks → `Services/BaseCrudService.php`, `Actions/Crud/*`.
 - Spreadsheet behaviour → `Excel/BaseExcel.php`, `Excel/ExcelHeader.php`, `Excel/Imports/ResourceImport.php`.
 - Multi-guard permissions → `Permissions/PermissionSyncer.php`, config `fancy-crud.permissions.guards`.

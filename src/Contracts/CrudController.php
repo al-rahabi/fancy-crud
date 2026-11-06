@@ -2,6 +2,7 @@
 
 namespace FancyCrud\Contracts;
 
+use FancyCrud\Bulk\BulkRunner;
 use FancyCrud\Excel\Contracts\Exportable;
 use FancyCrud\Excel\Contracts\Importable;
 use FancyCrud\Excel\Traits\ExportTrait;
@@ -51,21 +52,48 @@ abstract class CrudController extends Controller implements Exportable, Importab
         $this->authorizeIndex();
 
         $data = $this->repository->index();
-
-        $items = $this->resource::makeCollection(
-            $data instanceof LengthAwarePaginator ? $data->getCollection() : $data,
-            $this->service->getUser(),
-            false,
-            $this->getPlatform()
-        );
+        $rows = $data instanceof LengthAwarePaginator ? $data->getCollection() : $data;
         $meta = [];
 
+        if ($table = $this->repository->table()) {
+            // Table mode: rows hold exactly the requested columns, no Resource involved.
+            $columns = $table->selected($this->repository->requestedFields());
+            $items = $table->rows($rows, $columns);
+            $meta['table'] = $table->describe($columns) + [
+                'bulk_actions' => array_values(array_map(fn ($action) => $action->describe(), $this->repository->bulkActions())),
+            ];
+        } else {
+            $items = $this->resource::makeCollection($rows, $this->service->getUser(), false, $this->getPlatform());
+            $items = $items['data'] ?? $items ?? [];
+        }
+
         if ($data instanceof LengthAwarePaginator) {
-            $meta = Arr::only($data->toArray(), ['current_page', 'total', 'per_page', 'last_page']);
+            $meta = array_merge($meta, Arr::only($data->toArray(), ['current_page', 'total', 'per_page', 'last_page']));
             $meta['pages_count'] = $meta['last_page'];
         }
 
-        return $this->success($items['data'] ?? $items ?? [], meta: $meta);
+        return $this->success($items, meta: $meta);
+    }
+
+    /**
+     * `POST {resource}/bulk` — apply one of the repository's bulk actions to a
+     * selection (`ids`, `filters` or `all`), with optional `extra` data.
+     * Answers 404 when the repository declares no bulk actions.
+     */
+    public function bulk(): JsonResponse
+    {
+        $runner = new BulkRunner($this->repository);
+        abort_if($runner->actions() === [], 404);
+
+        $input = $runner->validate(request()->all());
+        $this->authorize($input['action']->ability(), $this->repository->getModel());
+
+        $result = $runner->run($input['action'], $input['selection'], $input['extra']);
+
+        return $this->success(
+            $result,
+            message: __($result['queued'] ? 'fancy-crud::messages.bulk_queued' : 'fancy-crud::messages.bulk_done')
+        );
     }
 
     /**
@@ -131,7 +159,7 @@ abstract class CrudController extends Controller implements Exportable, Importab
     {
         $result = $this->service->destroy($id);
 
-        if (!$result) {
+        if (! $result) {
             return $this->notFound();
         }
 

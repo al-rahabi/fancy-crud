@@ -3,11 +3,12 @@
 namespace FancyCrud\Tests;
 
 use FancyCrud\FancyCrudServiceProvider;
+use FancyCrud\Testing\InteractsWithCrud;
+use FancyCrud\Tests\Fixtures\Post;
 use FancyCrud\Tests\Fixtures\PostController;
 use FancyCrud\Tests\Fixtures\PostPolicy;
-use FancyCrud\Tests\Fixtures\Post;
+use FancyCrud\Tests\Fixtures\PostTableController;
 use FancyCrud\Tests\Fixtures\User;
-use FancyCrud\Testing\InteractsWithCrud;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -37,7 +38,12 @@ abstract class TestCase extends Orchestra
             Route::get('posts/export', [PostController::class, 'export']);
             Route::get('posts/import/template', [PostController::class, 'importTemplate']);
             Route::post('posts/import', [PostController::class, 'import']);
+            Route::post('posts/bulk', [PostController::class, 'bulk']);
             Route::apiResource('posts', PostController::class)->parameters(['posts' => 'id']);
+
+            // same model, but the index is built by a table and bulk actions are enabled
+            Route::post('table-posts/bulk', [PostTableController::class, 'bulk']);
+            Route::get('table-posts', [PostTableController::class, 'index']);
         });
     }
 
@@ -49,7 +55,23 @@ abstract class TestCase extends Orchestra
             $table->id();
             $table->string('title');
             $table->text('body')->nullable();
+            $table->string('status')->default('draft');
+            $table->boolean('is_active')->default(false);
+            $table->string('image')->nullable();
+            $table->json('meta')->nullable();
+            $table->unsignedBigInteger('author_id')->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('authors', function ($table) {
+            $table->id();
+            $table->string('name');
+        });
+
+        Schema::create('comments', function ($table) {
+            $table->id();
+            $table->unsignedBigInteger('post_id');
+            $table->string('body')->nullable();
         });
 
         Gate::policy(Post::class, PostPolicy::class);
