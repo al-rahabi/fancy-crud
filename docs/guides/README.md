@@ -2,12 +2,12 @@
 
 ## Add a CRUD resource end to end (in a host app)
 1. Model `Post` (optionally with `canUpdate()` / `canDelete()`, traits `Activable`, `Sortable`, `HasSlug`).
-2. `PostRepository extends BaseRepository` — `$model`, relations, `filterFields()`, `orderingFields()`, `searchableArray()`.
-3. `PostService extends BaseCrudService` — `$model`, optional `$guard` and hooks.
+2. `PostRepository extends BaseRepository` — `$model`, relations, `$filters` (a `BaseFilters` class) or `$table`, `orderingFields()`, `searchableArray()`.
+3. `PostService extends BaseCrudService` — `$model`, optional pure `storeAdditionalData()` / `updateAdditionalData()` (no request/user/hooks).
 4. `PostRequest extends BaseRequest` — `commonRules()` (+ `storeRules()` / `updateRules()` when they differ; PATCH is derived).
 5. `PostResource extends BaseResource` — optional `toDetailedArray()`, `abilities()`, `to{Platform}Array()`.
 6. `PostPolicy extends BasePolicy {}` and `Gate::policy(Post::class, PostPolicy::class)`.
-7. `PostController extends CrudController` — set `$resource`, `$storeRequest`, `$updateRequest`, optional `$excel`; implement
+7. `PostController extends CrudController` — set `$resource`, `$storeRequest`, `$updateRequest`, optional `$excel`, `$indexRequest`, `$bulkRequest`, `$guard`; implement
    `service()`, `repository()`, `getPlatform()`.
 8. Routes: `export`, `import/template`, `import` first, then `Route::apiResource('posts', PostController::class)->parameters(['posts' => 'id'])`
    (the controller methods take `$id`).
@@ -24,7 +24,9 @@ Working reference: `tests/Fixtures/*`.
 | Scope every read | `BaseRepository::globalQuery()` |
 | Scope every write | `BaseCrudService::globalQuery()` |
 | Add server-side attributes on create/update | `storeAdditionalData()` / `updateAdditionalData()` |
-| React before/after writes | `beforeSave/afterSave`, `beforeStore/afterStore`, `beforeUpdate/afterUpdate`, `beforeDelete/afterDelete` |
+| React before/after writes (events, notifications, audit) | controller hooks `beforeStore/afterStore`, `beforeUpdate/afterUpdate`, `beforeDestroy/afterDestroy` |
+| Add server-side values (acting user) to the payload | controller `storeData()` / `updateData()` |
+| Validate extra index parameters | subclass `BaseIndexRequest`, set the controller's `$indexRequest` |
 | Custom persistence | `createMethod()` / `updateMethod()` |
 | Different JSON per client | `BaseResource::to{Platform}Array()` + `getPlatform()` |
 | Different index permission check | `CrudController::authorizeIndex()` |
@@ -34,9 +36,8 @@ Working reference: `tests/Fixtures/*`.
 
 ## Behaviours worth knowing (previously listed as quirks, now fixed)
 - `Activable::toggleActive()` flips the real column value.
-- `BaseService::getUser()` resolves `auth($guard)->user()` lazily (the constructor also tries once), so services built before login work.
-  A request with **no user at all** still skips write authorization in `AbstractAction::authorize()` — deliberate, so console/queue code can use services.
-  Protect HTTP routes with auth middleware.
+- Services/actions never see the user or authorization, so console/queue code can use them freely. The controller authorizes every write and
+  resolves the user (`Controller::user()`, guard `$guard = 'web'`). Protect HTTP routes with auth middleware.
 - Read and write permission names both come from `FancyCrud\Support\PermissionName`.
 - `ResponseTrait` messages come from `fancy-crud::messages.success|error|not_found` (en/ar shipped, publishable).
 - `AcceptedLanguagesMiddleware` locales: `fancy-crud.supported_locales` → `app.supported_locales` → `[app.locale]`.

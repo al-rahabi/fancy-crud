@@ -16,12 +16,16 @@ use Illuminate\Database\Eloquent\Builder;
  * Filter::make('created_at')->method('whereDate');          // whereDate(created_at, =, ?created_at)
  * Filter::make('name')->relation('author');                 // whereHas author: name = ?name
  * Filter::make('author')->column('author_id');              // ?author=3 → where author_id = 3
- * Filter::make('mine')->using(fn ($q, $v) => $q->where('user_id', auth()->id()));
+ * Filter::make('status')->rules('in:draft,published');      // validated by the index request
+ * Filter::make('mine')->using(fn ($q, $v) => $q->where('user_id', (int) $v));
  * ```
  */
 class Filter
 {
     protected ?string $column = null;
+
+    /** @var array<int, mixed> */
+    protected array $rules = ['nullable'];
 
     protected string $condition = '=';
 
@@ -58,6 +62,26 @@ class Filter
     public function getColumn(): string
     {
         return $this->column ?? $this->name;
+    }
+
+    /**
+     * Validation rules of the request value (default: `nullable`, any value).
+     *
+     * @param  string|array<int, mixed>  $rules
+     */
+    public function rules(string|array $rules): static
+    {
+        $this->rules = (array) $rules;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    public function getRules(): array
+    {
+        return $this->rules;
     }
 
     /**

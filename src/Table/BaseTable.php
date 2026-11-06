@@ -3,6 +3,7 @@
 namespace FancyCrud\Table;
 
 use FancyCrud\Filters\Filter;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -216,14 +217,15 @@ abstract class BaseTable
 
     /**
      * One row of the response: the primary key plus a value per column.
+     * `$user` is the viewer (null = guest); the table never reads it from `auth()`.
      *
      * @param  array<int, Column>  $columns
      */
-    public function row(Model $model, array $columns): array
+    public function row(Model $model, array $columns, ?Authenticatable $user): array
     {
         $row = [$model->getKeyName() => $model->getKey()];
         foreach ($columns as $column) {
-            $row[$column->name()] = $column->resolve($model);
+            $row[$column->name()] = $column->resolve($model, $user);
         }
 
         return $row;
@@ -234,11 +236,11 @@ abstract class BaseTable
      * @param  array<int, Column>  $columns
      * @return array<int, array>
      */
-    public function rows(iterable $models, array $columns): array
+    public function rows(iterable $models, array $columns, ?Authenticatable $user): array
     {
         $rows = [];
         foreach ($models as $model) {
-            $rows[] = $this->row($model, $columns);
+            $rows[] = $this->row($model, $columns, $user);
         }
 
         return $rows;

@@ -5,9 +5,7 @@ use FancyCrud\Tests\Fixtures\PostRepository;
 
 function filteredTitles(array $query): array
 {
-    request()->replace($query);
-
-    return (new PostRepository)->index()->pluck('title')->sort()->values()->all();
+    return (new PostRepository)->withParameters($query)->index()->pluck('title')->sort()->values()->all();
 }
 
 beforeEach(function () {

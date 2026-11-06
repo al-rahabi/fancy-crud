@@ -4,6 +4,7 @@ namespace FancyCrud\Table;
 
 use Closure;
 use FancyCrud\Filters\Filter;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -101,7 +102,8 @@ class Column
 
     /**
      * The row-actions column: for each ability, whether the current user may
-     * perform it on that row (`Gate::allows($ability, $row)`).
+     * perform it on that row (`Gate::forUser($user)->allows($ability, $row)`, the user
+     * being the one the controller passes to `BaseTable::rows()`).
      *
      * @param  array<int, string>  $abilities
      */
@@ -189,7 +191,7 @@ class Column
     }
 
     /**
-     * Fully custom value: `fn (Model $row) => …`. Declare what it reads with
+     * Fully custom value: `fn (Model $row, ?Authenticatable $user) => …`. Declare what it reads with
      * `select()` / `relation()`, otherwise every column of the model is selected.
      */
     public function valueUsing(Closure $getter): static
@@ -210,7 +212,7 @@ class Column
     }
 
     /**
-     * Link target: `fn (Model $row) => string`. The value becomes `{label, url}`.
+     * Link target: `fn (Model $row, ?Authenticatable $user) => string`. The value becomes `{label, url}`.
      */
     public function url(Closure $url): static
     {
@@ -377,31 +379,45 @@ class Column
     // ---- value -----------------------------------------------------------
 
     /**
-     * The value sent to the client for this row.
+     * The value sent to the client for this row. The user is an explicit input
+     * (the column never reads `auth()`): it is who the `actions` abilities are
+     * checked for and is handed to custom closures as their second argument.
      */
-    public function resolve(Model $row): mixed
+    public function resolve(Model $row, ?Authenticatable $user): mixed
     {
         if ($this->getter !== null) {
-            return ($this->getter)($row);
+            return ($this->getter)($row, $user);
         }
 
         if ($this->type === self::ACTIONS) {
-            $allowed = [];
-            foreach ($this->abilities as $ability) {
-                $allowed[$ability] = Gate::allows($ability, $row);
-            }
-
-            return $allowed;
+            return $this->abilitiesFor($row, $user);
         }
 
         $raw = data_get($row, $this->path ?? $this->name);
 
         return match ($this->type) {
             self::IMAGE => $this->imageUrl($raw),
-            self::LINK => $this->linkValue($raw, $row),
+            self::LINK => $this->linkValue($raw, $row, $user),
             self::SWITCH => is_null($raw) ? null : (bool) $raw,
             default => $raw,
         };
+    }
+
+    /**
+     * Whether `$user` may perform each ability on the row (a guest when null).
+     * Policies run once per row and ability, so they must not lazy-load relations.
+     *
+     * @return array<string, bool>
+     */
+    protected function abilitiesFor(Model $row, ?Authenticatable $user): array
+    {
+        $gate = Gate::forUser($user);
+        $allowed = [];
+        foreach ($this->abilities as $ability) {
+            $allowed[$ability] = $gate->allows($ability, $row);
+        }
+
+        return $allowed;
     }
 
     protected function imageUrl(mixed $raw): mixed
@@ -413,13 +429,13 @@ class Column
         return Storage::disk($this->disk)->url($raw);
     }
 
-    protected function linkValue(mixed $raw, Model $row): mixed
+    protected function linkValue(mixed $raw, Model $row, ?Authenticatable $user): mixed
     {
         if (is_null($raw)) {
             return null;
         }
 
-        return ['label' => $raw, 'url' => $this->url ? ($this->url)($row) : $raw];
+        return ['label' => $raw, 'url' => $this->url ? ($this->url)($row, $user) : $raw];
     }
 
     // ---- accessors -------------------------------------------------------

@@ -17,8 +17,13 @@ class PublishBulkAction extends BulkAction implements HandlesByQuery
         ];
     }
 
+    /** @var array<string, mixed> What the last run received (lets tests see which keys got through). */
+    public static array $lastExtra = [];
+
     public function byQuery(Builder $query, array $extra): ?int
     {
+        self::$lastExtra = $extra;
+
         return $query->update(['status' => $extra['status']]);
     }
 }

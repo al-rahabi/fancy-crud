@@ -26,6 +26,11 @@ class FancyCrudServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/lang' => lang_path('vendor/fancy-crud'),
             ], 'fancy-crud-lang');
+
+            // AI code rules (Claude Code skill): php artisan vendor:publish --tag=fancy-crud-skills
+            $this->publishes([
+                __DIR__.'/../resources/skills/fancy-crud' => base_path('.claude/skills/fancy-crud'),
+            ], 'fancy-crud-skills');
         }
     }
 }

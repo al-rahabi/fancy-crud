@@ -42,7 +42,7 @@ abstract class BaseFilters
     public function defaults(): array
     {
         return [
-            Filter::make('forced_items')->using(fn (Builder $q, mixed $val) => $q->whereIn('id', Arr::wrap($val))),
+            Filter::make('forced_items')->rules(['nullable', 'array'])->using(fn (Builder $q, mixed $val) => $q->whereIn('id', Arr::wrap($val))),
         ];
     }
 

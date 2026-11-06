@@ -1,21 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace FancyCrud\Services;
 
-use Illuminate\Contracts\Auth\Authenticatable;
-
+/**
+ * Base of every service. A service holds business logic only: it takes typed
+ * arguments and never reads the request, the authenticated user or policies —
+ * authorization and the acting user belong to the controller.
+ */
 abstract class BaseService
 {
-    protected string $guard = 'web';
-
-    protected string $platform = '';
-
-    protected ?Authenticatable $user = null;
-
-    public function __construct(string $platform = '')
+    public function __construct(protected string $platform = '')
     {
-        $this->user = auth($this->guard)->user();
-        $this->platform = $platform;
         $this->initialize();
     }
 
@@ -23,15 +20,6 @@ abstract class BaseService
      * Additional service initialization.
      */
     protected function initialize(): void {}
-
-    /**
-     * The authenticated user of `$guard`. Resolved lazily, so a service built
-     * before login (or a long-lived one) still sees the current user.
-     */
-    public function getUser(): ?Authenticatable
-    {
-        return $this->user ??= auth($this->guard)->user();
-    }
 
     public static function instance(string $platform = ''): static
     {

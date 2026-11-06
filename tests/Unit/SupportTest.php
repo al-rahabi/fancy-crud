@@ -7,7 +7,6 @@ use FancyCrud\Support\PermissionName;
 use FancyCrud\Tests\Unit\Fixtures\BlogPost;
 use FancyCrud\Tests\Unit\Fixtures\BlogPostPolicy;
 use FancyCrud\Tests\Unit\Fixtures\BlogPostService;
-use FancyCrud\Tests\Unit\Fixtures\PermUser;
 use FancyCrud\Tests\Unit\Fixtures\Toggle;
 use FancyCrud\Traits\ResponseTrait;
 use Illuminate\Http\Request;
@@ -24,21 +23,19 @@ it('toggles the active flag both ways', function () {
     expect($toggle->fresh()->is_active)->toBeFalse();
 });
 
-it('derives the same permission name for services and policies', function () {
+it('derives the permission name the same way for policies and PermissionName', function () {
     expect(PermissionName::for(BlogPost::class, 'update'))->toBe('update blog posts')
         ->and(PermissionName::for(new BlogPost, 'index'))->toBe('index blog posts')
-        ->and((new BlogPostService)->getPermissionName('delete'))->toBe('delete blog posts')
         ->and((new BlogPostPolicy)->resourceName())->toBe('blog posts');
 });
 
-it('resolves the service user lazily after login', function () {
-    $service = new BlogPostService; // built while nobody is logged in
-    expect($service->getUser())->toBeNull();
+it('keeps services free of users, authorization and hooks', function () {
+    $service = new BlogPostService;
 
-    $user = PermUser::create(['name' => 'a']);
-    $this->actingAs($user);
-
-    expect($service->getUser()?->is($user))->toBeTrue();
+    foreach (['getUser', 'getPermissionName', 'beforeStore', 'afterStore', 'beforeUpdate', 'afterUpdate', 'beforeDelete', 'afterDelete', 'beforeSave', 'afterSave'] as $method) {
+        expect(method_exists($service, $method))->toBeFalse("$method should not exist on a service");
+    }
+    expect(method_exists(FancyCrud\Actions\Crud\AbstractAction::class, 'authorize'))->toBeFalse();
 });
 
 it('uses the fancy-crud message namespace for response messages', function () {

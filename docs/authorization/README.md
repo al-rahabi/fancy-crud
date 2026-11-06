@@ -8,8 +8,7 @@ Source: `src/Contracts/BasePolicy.php`, `src/Permissions/PermissionSyncer.php`, 
 `Post` → `index posts`, `BlogPost` → `create blog posts`. Standard actions: `index show create update delete export import`.
 Custom abilities (e.g. `cancel`, `send`) are just extra actions declared per resource.
 
-Both sides use `FancyCrud\Support\PermissionName` (`resource($classOrModel)`, `for($classOrModel, $action)`): `BaseCrudService::getPermissionName()`
-(from `$model`) and `BasePolicy::$resource` (policy class name minus `Policy`, or an explicit `protected string $resource`).
+Both sides use `FancyCrud\Support\PermissionName` (`resource($classOrModel)`, `for($classOrModel, $action)`): `BasePolicy::$resource` (policy class name minus `Policy`, or an explicit `protected string $resource`).
 
 ## `BasePolicy`
 Methods `index, show, create, update, delete, export, import` each call `hasPermission($action, $user)` → `$user->can("{action} {resource}")`.
@@ -19,7 +18,7 @@ A minimal policy is `class PostPolicy extends BasePolicy {}`. Add custom abiliti
 
 ## Where checks happen
 - Reads/Excel: Gate → policy (`CrudController::authorizeIndex/authorizeShow`, `ExcelHeadersTrait::authorizeExcel`).
-- Writes: `AbstractAction::authorize()` → `$user->can(permissionName, $model)` → 403.
+- Writes and bulk: the controller's `authorize('create'|'update'|'delete'|$bulkAbility, …)` → policy → 403. Services and actions never authorize.
 With Spatie, `$user->can('index posts')` resolves through the Gate permission check Spatie registers.
 
 ## `PermissionSyncer` (multi-guard)

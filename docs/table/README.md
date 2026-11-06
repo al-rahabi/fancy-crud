@@ -52,7 +52,8 @@ Without a table nothing changes (Resource path, `$indexRelation`, `$indexCountRe
 
 1. **First request** — `GET /posts`: no `fields` ⇒ the *default columns* are returned.
 2. **After that** — the client picks what it needs: `GET /posts?fields[]=title&fields[]=author_name` or `?fields=title,author_name`.
-   Order follows the request; unknown or duplicate names are ignored; if none is valid the defaults are used.
+   Order follows the request; unknown or duplicate names are ignored; if none is valid the defaults are used. `fields` (like every index parameter) is validated by
+   `BaseIndexRequest` and handed to the repository with `withParameters()`; the repository never reads the request.
 3. Filters (`?status=published&author_name=Ann`), ordering (`?order_by[0][name]=title&order_by[0][direction]=desc`), `?search=`,
    `?per_page=`, `?unlimited=1` and `?forced_items[]=` work as for any index.
 
@@ -105,15 +106,22 @@ Factories: `Column::text|image|link|switch($name)`, `Column::actions(array $abil
 | `relation($rel, $column = null)` | eager-load `$rel`, value = `$rel.$column` (or the related model itself when no column), FK selected for you |
 | `from($path)` | read `data_get($row, $path)` — e.g. a JSON attribute `meta.color`; first segment is selected unless `select()` is given |
 | `count($rel)` | `withCount($rel)`; name the column `{rel}_count` |
-| `valueUsing(fn (Model $row) => …)` | custom value. Declare `select()`/`relation()` for what it reads, otherwise every column (`*`) is selected |
+| `valueUsing(fn (Model $row, ?Authenticatable $user) => …)` | custom value. Declare `select()`/`relation()` for what it reads, otherwise every column (`*`) is selected |
 | `disk($d)` | *image*: turn a stored path into `Storage::disk($d)->url()` (absolute URLs are left alone) |
-| `url(fn (Model $row) => …)` | *link*: value becomes `{label, url}`; without it `{label: value, url: value}` |
+| `url(fn (Model $row, ?Authenticatable $user) => …)` | *link*: value becomes `{label, url}`; without it `{label: value, url: value}` |
 | `meta([...])` | free data sent in `describe()` |
 | `orderable(true\|'col'\|Closure)` | see below |
 | `filterable($condition = '=', $method = 'where')` / `filter(Filter ...)` | see below |
 
 Values by type: **text** raw value · **image** URL · **link** `{label,url}` (null stays null) · **switch** `bool`/null ·
-**actions** `{ability: Gate::allows(ability, row)}` (needs no database column).
+**actions** `{ability: Gate::forUser($user)->allows(ability, row)}` (needs no database column).
+
+### The viewer is an input, never `auth()`
+`BaseTable::rows($models, $columns, ?Authenticatable $user)`, `row(...)` and `Column::resolve($row, ?Authenticatable $user)` take the viewer
+explicitly; `CrudController::indexItems()` passes `$this->user()`. Nothing in `src/Table` reads `auth()`, so a table can be rendered
+for any user (tests, console, exports) and `null` means a guest (every ability `false`). Custom `valueUsing()` / `url()` closures receive the user
+as their second argument. Abilities are checked **once per row and ability**: policies and model `can*()` methods called there must not
+lazy-load relations (eager-load them, or keep those checks column-local) or the index becomes N+1.
 
 ### Ordering
 Not orderable by default (requests for it are ignored — `order_by` only honours declared fields).
@@ -131,13 +139,14 @@ Table ordering is merged with the repository's `orderingFields()`; the repositor
 - `Filter::column('db_col')` maps a request key to a different database column.
 
 The effective set is `BaseRepository::resolvedFilters()`: table filters + repository `filters()` (+ built-in `forced_items`);
-on a name clash the repository's filter wins. Only declared names are read from the request.
+on a name clash the repository's filter wins. Only declared names are accepted: each filter's value is validated by the index request with `Filter::rules()`
+(default `nullable`; e.g. `Filter::make('status')->rules('in:draft,published')`).
 
 ## Table-level API (`BaseTable`)
 
 `columns()` (abstract) · `model()` · `defaultColumns(): string[]` (override to pick defaults by name; default = non-`optional()` columns) ·
 `filters()` · `allFilters()` · `columnMap()` · `selected(?array $requested): Column[]` · `prepare(Builder, Column[])` ·
-`orderingFields(Model)` · `row()/rows()` · `describe(Column[])`.
+`orderingFields(Model)` · `row()/rows($models, $columns, ?Authenticatable $user)` · `describe(Column[])`.
 
 Repository seams: `table()`, `requestedFields()`, `resolvedFilters()`, `getModel()` (falls back to the table's model).
 

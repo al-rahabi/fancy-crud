@@ -1,15 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace FancyCrud\Bulk;
 
 use FancyCrud\Repositories\BaseRepository;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 /**
- * Validates a bulk request and runs the chosen {@see BulkAction} over the
- * selection. HTTP-free apart from the validation exception.
+ * Resolves a *validated* bulk payload and runs the chosen {@see BulkAction} over
+ * the selection. It reads no request: validation is
+ * {@see \FancyCrud\Contracts\BaseBulkRequest}'s job.
  *
  * Selection (exactly one): `['ids' => [...]]`, `['filters' => [...]]` or `['all' => true]`.
  */
@@ -26,72 +26,65 @@ class BulkRunner
     }
 
     /**
-     * Validate the request payload.
+     * Rules for the bulk request: the action must be one of the repository's,
+     * `filters.<name>` use each filter's rules and `extra.<key>` the action's rules.
      *
-     * @return array{action: BulkAction, selection: array, extra: array}
-     *
-     * @throws ValidationException
+     * @return array<string, mixed>
      */
-    public function validate(array $input): array
+    public function rules(?string $actionName): array
     {
         $actions = $this->actions();
+        $rules = ['action' => ['required', 'string', 'in:'.implode(',', array_keys($actions))]];
 
-        Validator::make($input, [
-            'action' => ['required', 'string', 'in:'.implode(',', array_keys($actions))],
-            'ids' => ['nullable', 'array', 'min:1'],
-            'ids.*' => ['required'],
-            'filters' => ['nullable', 'array'],
-            'all' => ['nullable', 'boolean'],
-            'extra' => ['nullable', 'array'],
-        ])->validate();
+        foreach ($this->repository->resolvedFilters()->all() as $filter) {
+            $rules['filters.'.$filter->name()] = $filter->getRules();
+        }
 
-        $action = $actions[$input['action']];
-        $selection = $this->selection($input);
-
-        $rules = [];
-        foreach ($action->rules() as $key => $rule) {
+        foreach (($actions[$actionName] ?? null)?->rules() ?? [] as $key => $rule) {
             $rules["extra.$key"] = $rule;
         }
-        $extra = [];
-        if ($rules !== []) {
-            $extra = Arr::get(Validator::make($input, $rules)->validate(), 'extra', []);
-        }
 
-        return ['action' => $action, 'selection' => $selection, 'extra' => $extra];
+        return $rules;
     }
 
     /**
-     * Normalize the selection part of the payload. An empty `filters` object is
-     * rejected rather than read as "everything".
+     * Turn validated data into the action, the selection and the extra data.
      *
-     * @throws ValidationException
+     * @param  array<string, mixed>  $validated
+     * @return array{action: BulkAction, selection: array<string, mixed>, extra: array<string, mixed>}
      */
-    protected function selection(array $input): array
+    public function resolve(array $validated): array
     {
-        $ids = ! empty($input['ids']);
-        $filters = Arr::only($input['filters'] ?? [], $this->repository->resolvedFilters()->names());
-        $filters = array_filter($filters, fn ($value) => ! is_null($value));
-        $all = filter_var($input['all'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        return [
+            'action' => $this->actions()[$validated['action']],
+            'selection' => $this->selection($validated),
+            'extra' => $validated['extra'] ?? [],
+        ];
+    }
 
-        if (! empty($input['filters']) && $filters === [] && ! $ids && ! $all) {
-            throw ValidationException::withMessages(['filters' => __('fancy-crud::messages.bulk_filters_invalid')]);
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    protected function selection(array $validated): array
+    {
+        if (! empty($validated['ids'])) {
+            return ['ids' => array_values($validated['ids'])];
         }
 
-        $chosen = array_filter(['ids' => $ids, 'filters' => $filters !== [], 'all' => $all]);
-        if (count($chosen) !== 1) {
-            throw ValidationException::withMessages(['selection' => __('fancy-crud::messages.bulk_selection_invalid')]);
+        $filters = array_filter($validated['filters'] ?? [], fn (mixed $value): bool => ! is_null($value));
+        if ($filters !== []) {
+            return ['filters' => $filters];
         }
 
-        return match (array_key_first($chosen)) {
-            'ids' => ['ids' => array_values($input['ids'])],
-            'filters' => ['filters' => $filters],
-            default => ['all' => true],
-        };
+        return ['all' => true];
     }
 
     /**
      * Run the action. `job` actions are queued and report `processed => null`.
      *
+     * @param  array<string, mixed>  $selection
+     * @param  array<string, mixed>  $extra
      * @return array{mode: string, queued: bool, processed: int|null}
      */
     public function run(BulkAction $action, array $selection, array $extra = []): array
@@ -99,9 +92,7 @@ class BulkRunner
         $mode = $action->mode();
 
         if ($mode === BulkAction::MODE_JOB) {
-            $job = new BulkActionJob(get_class($this->repository), get_class($action), $selection, $extra);
-            $job->onConnection($action->connection())->onQueue($action->queue());
-            dispatch($job);
+            $this->dispatch($action, $selection, $extra);
 
             return ['mode' => $mode, 'queued' => true, 'processed' => null];
         }
@@ -110,7 +101,21 @@ class BulkRunner
     }
 
     /**
+     * @param  array<string, mixed>  $selection
+     * @param  array<string, mixed>  $extra
+     */
+    protected function dispatch(BulkAction $action, array $selection, array $extra): void
+    {
+        $job = new BulkActionJob(get_class($this->repository), get_class($action), $selection, $extra);
+        $job->onConnection($action->connection())->onQueue($action->queue());
+        dispatch($job);
+    }
+
+    /**
      * Execute the action now; used by the request (query/sync) and by the job.
+     *
+     * @param  array<string, mixed>  $selection
+     * @param  array<string, mixed>  $extra
      */
     public function process(BulkAction $action, array $selection, array $extra = []): int
     {

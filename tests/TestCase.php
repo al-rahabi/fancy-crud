@@ -4,6 +4,7 @@ namespace FancyCrud\Tests;
 
 use FancyCrud\FancyCrudServiceProvider;
 use FancyCrud\Testing\InteractsWithCrud;
+use FancyCrud\Tests\Fixtures\HookedPostController;
 use FancyCrud\Tests\Fixtures\Post;
 use FancyCrud\Tests\Fixtures\PostController;
 use FancyCrud\Tests\Fixtures\PostPolicy;
@@ -40,6 +41,9 @@ abstract class TestCase extends Orchestra
             Route::post('posts/import', [PostController::class, 'import']);
             Route::post('posts/bulk', [PostController::class, 'bulk']);
             Route::apiResource('posts', PostController::class)->parameters(['posts' => 'id']);
+
+            // controller hooks around writes
+            Route::apiResource('hooked-posts', HookedPostController::class)->parameters(['hooked-posts' => 'id']);
 
             // same model, but the index is built by a table and bulk actions are enabled
             Route::post('table-posts/bulk', [PostTableController::class, 'bulk']);

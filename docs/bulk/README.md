@@ -9,7 +9,8 @@ they are independent of the [table](../table/README.md) (but the table's index `
 | `Bulk\HandlesByQuery` | one statement over the whole selection — `byQuery(Builder $query, array $extra): ?int` |
 | `Bulk\HandlesBySync` | immediate, per record — `bySync(Model $model, array $extra): void` |
 | `Bulk\HandlesByJob` | queued, per record — `byJob(Model $model, array $extra): void` |
-| `Bulk\BulkRunner` | validates the payload, resolves the selection, runs / dispatches the action (HTTP-free) |
+| `Bulk\BulkRunner` | turns validated data into action + selection + extra, runs / dispatches the action (HTTP-free, reads no request) |
+| `Contracts\BaseBulkRequest` | the FormRequest that validates the payload (replaceable with the controller's `$bulkRequest`) |
 | `Bulk\BulkActionJob` | the queued job (`ShouldQueue`) used for `HandlesByJob` |
 
 ## Defining an action
@@ -81,9 +82,10 @@ need a constructor without arguments. There is **no request and no authenticated
 | Key | Rule |
 |-----|------|
 | `action` | required; one of the repository's action names |
-| `ids` \| `filters` \| `all` | **exactly one**. `ids`: non-empty array · `filters`: key/value pairs of *declared* filters (repository, table, `forced_items`) with at least one usable value · `all`: `true` |
+| `ids` \| `filters` \| `all` | **exactly one**. `ids`: non-empty array · `filters`: key/value pairs of *declared* filters (repository, table, `forced_items`), each checked with its `Filter::rules()`, with at least one usable value · `all`: `true` |
 | `extra` | validated with the action's `rules()` (`extra.<key>`); mark `required` for mandatory data; only keys with rules reach the action |
 
+Validation lives in `BaseBulkRequest` (`FancyCrud\Contracts`); the controller only calls `app($bulkRequest)->validated()` and `BulkRunner::resolve()`.
 Errors: 422 with Laravel's validation errors (`action`, `selection`, `filters`, `extra.<key>`); an empty or unknown-only `filters` is
 rejected rather than read as "everything". 403 when the user lacks the action's `ability()` on the model (policy → `"{ability} {resource}"`
 permission). 404 when the repository declares no bulk actions. Authorization is class-level (`authorize($ability, $model)`); per-record

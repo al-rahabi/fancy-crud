@@ -9,6 +9,8 @@ All controllers extend `FancyCrud\Contracts\CrudController`; the constructor cal
 
 ## index — `GET /resource`
 1. `authorizeIndex()` → `$this->authorize('index', $repository->getModel())` (policy `index`).
+1b. `indexParameters()` = `app($indexRequest)->validated()` (`BaseIndexRequest`: `per_page`, `unlimited`, `search`, `fields`, `order_by`, filter values) →
+   `$repository->withParameters($params)`. The repository reads only these, never the request.
 2. `BaseRepository::index()`: `globalQuery()->with(getRelations())->withCount(getCountRelations())`
    → `applyFilters` → `applySearch` → `applyOrder` → paginate (`per_page` request key, default `$limit = 10`)
    or `get()` when `$paginated = false` or `?unlimited=1`.
@@ -22,7 +24,7 @@ filters) → search → order (table ordering merged with `orderingFields()`) �
 
 ## bulk — `POST /resource/bulk`
 1. 404 if the repository has no `$bulkActions`.
-2. `BulkRunner::validate()`: `action` known, exactly one of `ids` / `filters` / `all`, `extra` validated with the action's `rules()` (422).
+2. `app($bulkRequest)->validated()` (`BaseBulkRequest`: `action` known, exactly one of `ids` / `filters` / `all`, filter values by `Filter::rules()`, `extra` by the action's `rules()`; 422) → `BulkRunner::resolve()`.
 3. `authorize($action->ability(), $model)` (403).
 4. `BulkRunner::run()`: `query` → `byQuery($query, $extra)`; `sync` → chunked `bySync` per model; `job` → `BulkActionJob` dispatched (chunked `byJob` inside).
    The selection query comes from `BaseRepository::bulkQuery()`. See [bulk](bulk/README.md).
@@ -34,22 +36,21 @@ filters) → search → order (table ordering merged with `orderingFields()`) �
 4. `formatItem()` → `BaseResource::makeWithDetail(item, user, detailed=true, platform)`.
 
 ## store — `POST /resource`
-1. `app($storeRequest)->validated()` (422 on failure).
-2. `BaseCrudService::store($data)` → `new CreateAction($service, $data)->execute()`:
-   `authorize('create')` → merge `storeAdditionalData()` → `beforeStore` (→`beforeSave`) → `createMethod` (`Model::create`)
-   → `afterStore` (→`afterSave`).
-3. Response 201 with `formatItem($created)`.
+1. Controller: `authorize('create', Model)` (policy, 403) — before anything else.
+2. `storeData()` = `app($storeRequest)->validated()` (422 on failure); override to add server-side values such as the acting user.
+3. `beforeStore($data)` (controller hook) → `BaseCrudService::store($data)` → `CreateAction`: merge `storeAdditionalData()` → `createMethod`
+   → `afterStore($item, $data)` (controller hook).
+4. Response 201 with `formatItem($created)`.
 
 ## update — `PUT|PATCH /resource/{id}`
-1. `app($updateRequest)->validated()`. `BaseRequest::rules()` picks `updateRules()` for PUT and `patchRules()` for PATCH
+1. Controller: `service->findItem($id)` → `null` ⇒ 404 → `authorize('update', $item)` (policy, which also runs the model's `canUpdate($user)`; 403).
+2. `updateData()` = `app($updateRequest)->validated()`. `BaseRequest::rules()` picks `updateRules()` for PUT and `patchRules()` for PATCH
    (patch = update rules with `required` removed / turned into `nullable`).
-2. `UpdateAction`: resolve item (`findItem`) → `null` ⇒ service returns null ⇒ controller 404 →
-   `authorize('update', $item)` → model `canUpdate()` check if defined (false ⇒ null ⇒ 404) →
-   `updateAdditionalData` → `beforeUpdate` → `updateMethod` → `afterUpdate`.
+3. `beforeUpdate($item, $data)` → `service->update($item, $data)` (`UpdateAction`: `updateAdditionalData` → `updateMethod`) → `afterUpdate($item, $data)`.
 
 ## destroy — `DELETE /resource/{id}`
-`DestroyAction`: find → null ⇒ false ⇒ 404 → `authorize('delete', $item)` → model `canDelete()` (false ⇒ 404) →
-`beforeDelete` → `$item->delete()` → `afterDelete` if it deleted. Success returns the empty envelope.
+Controller: `findItem` → null ⇒ 404 → `authorize('delete', $item)` (403) → `beforeDestroy($item)` → `service->destroy($item)` (`DestroyAction`: `delete()`)
+→ `afterDestroy($item)` if it deleted (else a 400 error). Success returns the empty envelope.
 
 ## export — `GET /resource/export` (needs `$excel`)
 `ExportTrait::export()` → `authorizeExcel('export')` (404 if no `$excel`; policy `export`) →
@@ -76,9 +77,10 @@ Gated by the `import` ability; returns a one-row sheet (`TemplateExport`) with a
 ## Authorization of one request (summary)
 ```
 index/show/export/import → Gate::authorize(ability, Model|instance) → Policy method → $user->can("{ability} {resource}")
-store/update/destroy     → AbstractAction::authorize → $user->can("{action} {resource}", $model)  (abort 403)
+store/update/destroy/bulk → the same, called by the controller *before* validation and before the service
 ```
-`AbstractAction::authorize` is skipped entirely when the service has no user (`getUser()` null, resolved lazily from the guard).
+Services, actions, repositories and jobs never authorize and never read the user. Keep routes behind auth middleware: a request without a
+user is stopped by the auth middleware (401) and denied by the policy (403).
 
 ## Permission sync — `php artisan fancy-crud:permissions [--guard=web --guard=admin]`
 `SyncPermissionsCommand` → `PermissionSyncer::sync()` → per configured guard: `updateOrCreate` every `"{action} {resource}"`,

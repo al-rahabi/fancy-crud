@@ -45,10 +45,14 @@ Bind a directory in `tests/Pest.php`: `pest()->extend(CrudTestCase::class)->in('
   `PermissionsTest` covers the syncer (multi-guard, main role, pruning, idempotency), the command and `InteractsWithPermissions`;
   `SupportTest` covers `Activable`, `PermissionName`, lazy service user, response messages, middleware locales, notification data and `MediaCast`.
   Fixtures live in `tests/Unit/Fixtures/`.
+- `tests/Unit/SkillTest.php`: the shipped skill (frontmatter, reference links, `fancy-crud-skills` publish tag).
+- `tests/Feature/ControllerContractTest.php`: the refactored contract — controller hooks and their order (`HookedPostController`, route `hooked-posts`), authorization before
+  validation and before any hook, no hooks on 403/422/404, services/actions running with nobody logged in and no request, index parameters validated by `BaseIndexRequest`.
 - `tests/Feature/FiltersTest.php`: `BaseFilters`/`Filter` through `PostRepository` (`PostFilters`).
 - `tests/Feature/TableTest.php`: the table builder on `table-posts` (`PostTable`, `PostTableRepository`, `PostTableController`, models `Author`/`Comment`):
   default and requested fields, query shape via the query log (selected columns, eager loads, counts), every column type, relation/count/getter/path
-  values, ordering (plain, string, closure, count, non-orderable), column/table/repository filters, `describe()` meta, authorization.
+  values, ordering (plain, string, closure, count, non-orderable), column/table/repository filters, `describe()` meta, authorization, and that the viewer is an
+  explicit input (abilities for the given user rather than the logged-in one, guest on `null`, user handed to closures, rendering with no `auth()`).
 - `tests/Feature/BulkActionTest.php`: bulk actions (`PublishBulkAction` query, `DeleteBulkAction` sync, `ArchiveBulkAction` job) — selection kinds and their
   validation, extra data, the three modes (`Queue::fake()` and the sync queue), authorization, 404 without actions.
 - `TestCase` also creates `authors`/`comments` tables and extra `posts` columns (`status`, `is_active`, `image`, `meta`, `author_id`); route `posts/bulk`

@@ -174,11 +174,21 @@ describe('action and extra data', function () {
     });
 
     it('accepts optional extra data and hands the action only validated keys', function () {
-        $runner = new BulkRunner(new PostTableRepository);
+        bulk(['action' => 'publish', 'all' => true, 'extra' => ['status' => 'archived', 'note' => 'hi', 'rogue' => 'x']])->assertOk();
 
-        $input = $runner->validate(['action' => 'publish', 'all' => true, 'extra' => ['status' => 'archived', 'note' => 'hi', 'rogue' => 'x']]);
+        expect(PublishBulkAction::$lastExtra)->toBe(['status' => 'archived', 'note' => 'hi']);
+    });
 
-        expect($input['extra'])->toBe(['status' => 'archived', 'note' => 'hi']);
+    it('resolves validated data into action, selection and extra', function () {
+        $input = (new BulkRunner(new PostTableRepository))->resolve(['action' => 'publish', 'filters' => ['status' => 'draft', 'x' => null], 'extra' => ['status' => 'archived']]);
+
+        expect($input['action'])->toBeInstanceOf(PublishBulkAction::class)
+            ->and($input['selection'])->toBe(['filters' => ['status' => 'draft']])
+            ->and($input['extra'])->toBe(['status' => 'archived']);
+    });
+
+    it('validates filter values with the rules of the filter', function () {
+        bulk(['action' => 'delete', 'filters' => ['forced_items' => 'not-an-array']])->assertStatus(422)->assertJsonValidationErrors('filters.forced_items');
     });
 
     it('needs no extra data for an action that declares none', function () {

@@ -3,12 +3,14 @@
 namespace FancyCrud\Repositories;
 
 use FancyCrud\Bulk\BulkAction;
+use FancyCrud\Contracts\BaseIndexRequest;
 use FancyCrud\Filters\BaseFilters;
 use FancyCrud\Filters\FilterSet;
 use FancyCrud\Table\BaseTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 /**
@@ -48,6 +50,9 @@ abstract class BaseRepository
     protected array $bulkActions = [];
 
     private ?BaseTable $tableInstance = null;
+
+    /** @var array<string, mixed> */
+    private array $parameters = [];
 
     /**
      * The model: `$model`, or the table's when only the table declares one.
@@ -145,7 +150,37 @@ abstract class BaseRepository
      */
     public function getLimit(): int
     {
-        return request('per_page', $this->limit);
+        return (int) ($this->parameters['per_page'] ?? $this->limit);
+    }
+
+    /**
+     * The validated index parameters (`per_page`, `unlimited`, `search`, `fields`,
+     * `order_by` and the filter values) this repository reads. The repository never
+     * touches the request itself — the controller passes what the index request validated.
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    public function withParameters(array $parameters): static
+    {
+        $this->parameters = $parameters;
+
+        return $this;
+    }
+
+    /**
+     * Validation rules of the repository's own parameters: one entry per filter
+     * (from its `Filter::rules()`). Merged into the index request by {@see BaseIndexRequest}.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public function indexRules(): array
+    {
+        $rules = [];
+        foreach ($this->resolvedFilters()->all() as $filter) {
+            $rules[$filter->name()] = $filter->getRules();
+        }
+
+        return $rules;
     }
 
     /**
@@ -156,9 +191,9 @@ abstract class BaseRepository
         return $this->paginated;
     }
 
-    public function forceUnlimited(): ?bool
+    public function forceUnlimited(): bool
     {
-        return request('unlimited');
+        return filter_var($this->parameters['unlimited'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -229,7 +264,7 @@ abstract class BaseRepository
      */
     public function requestedFields(): array
     {
-        $fields = request()->input('fields');
+        $fields = $this->parameters['fields'] ?? null;
         if (is_string($fields)) {
             $fields = explode(',', $fields);
         }
@@ -241,7 +276,9 @@ abstract class BaseRepository
 
     public function getSearchTerm(): ?string
     {
-        return request('search');
+        $term = $this->parameters['search'] ?? null;
+
+        return is_string($term) ? $term : null;
     }
 
     /**
@@ -262,7 +299,9 @@ abstract class BaseRepository
 
     public function requestedOrdering(): ?array
     {
-        return request()->input('order_by');
+        $order = $this->parameters['order_by'] ?? null;
+
+        return is_array($order) ? $order : null;
     }
 
     /**
@@ -292,7 +331,7 @@ abstract class BaseRepository
 
     public function requestedFilters(): array
     {
-        return request()->only($this->resolvedFilters()->names());
+        return Arr::only($this->parameters, $this->resolvedFilters()->names());
     }
 
     protected function applySearch(Builder $query): Builder

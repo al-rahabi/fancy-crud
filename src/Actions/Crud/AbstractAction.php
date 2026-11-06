@@ -1,31 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace FancyCrud\Actions\Crud;
 
 use FancyCrud\Services\BaseCrudService;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * One write verb. Actions are request-free and user-free: no authorization and
+ * no hooks, only the write itself.
+ */
 abstract class AbstractAction
 {
-    protected int|string|Model|null|array $target = null;
+    protected int|string|Model|null $target = null;
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function __construct(
         protected BaseCrudService $service,
         protected array $payload = []
     ) {}
-
-    /**
-     * Check if the user is authorized to perform the action.
-     */
-    public function authorize(string $permission, mixed $model = null): bool
-    {
-        $user = $this->service->getUser();
-        if ($user && ! $user->can($this->service->getPermissionName($permission), $model)) {
-            abort(403);
-        }
-
-        return true;
-    }
 
     public function for(int|string|Model $idOrModel): static
     {
@@ -34,8 +30,10 @@ abstract class AbstractAction
         return $this;
     }
 
-    /**
-     * Execute the action.
-     */
+    protected function item(): ?Model
+    {
+        return $this->target === null ? null : $this->service->findItem($this->target);
+    }
+
     abstract public function execute(): mixed;
 }

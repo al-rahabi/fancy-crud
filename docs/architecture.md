@@ -6,7 +6,7 @@
 HTTP request
    │
    ▼
-CrudController (Contracts)        ← routing target; formats JSON; authorizes reads
+CrudController (Contracts)        ← routing target; formats JSON; authorizes reads AND writes; before/after hooks
    ├── BaseRepository             ← READ side: index/show queries, search, filters, ordering, pagination
    └── BaseCrudService            ← WRITE side: store/update/destroy orchestration + hooks
           └── CreateAction / UpdateAction / DestroyAction   ← one class per write verb, authorize + run hooks
@@ -24,7 +24,7 @@ update/destroy; eager-loaded relations belong to the repository.
 | Path | Group | Purpose |
 |------|-------|---------|
 | `Actions/Crud/` | crud-core | `AbstractAction`, `CreateAction`, `UpdateAction`, `DestroyAction` |
-| `Services/` | crud-core | `BaseService` (user/guard/platform), `BaseCrudService` (write hooks) |
+| `Services/` | crud-core | `BaseService` (platform), `BaseCrudService` (request-free, user-free writes) |
 | `Repositories/` | crud-core | `BaseRepository` (index/show query builder) |
 | `Contracts/` | http / authorization / support | `Controller`, `CrudController`, `BaseRequest`, `BaseResource`, `BasePolicy`, `BaseEnumTrait`, `BaseNotification` |
 | `Traits/` | support / http | `ResponseTrait`, `PaginationMetaTrait`, `Activable`, `Sortable`, `HasSlug`, `Makeable` |
@@ -38,6 +38,7 @@ update/destroy; eager-loaded relations belong to the repository.
 | `Permissions/` | authorization | `PermissionSyncer` |
 | `Console/` | authorization | `SyncPermissionsCommand` (`fancy-crud:permissions`) |
 | `Testing/` | testing | `CrudTestBuilder`, `InteractsWithCrud`, `InteractsWithPermissions`, `helpers.php` (`crudTest()`) |
+| `resources/skills/fancy-crud/` | skill | AI code-rules skill, publishable with tag `fancy-crud-skills` |
 | `helpers.php` | support | `assetUrl()` |
 | `FancyCrudServiceProvider.php` | root | auto-discovered; merges config, loads lang, registers command, publish tags |
 
@@ -63,9 +64,9 @@ Required: PHP ^8.3, `laravel/framework` ^11|12|13, `guzzlehttp/psr7`, `maatwebsi
    (`$model`, `$resource`, `$excel`, …) and hooks, not whole methods.
 2. Controllers hold **no business logic**: they resolve a repository + service, validate through a request class,
    call the service, and wrap results with `ResponseTrait`.
-3. Authorization is split: reads (`index`, `show`) go through Laravel's Gate/Policy (`$this->authorize()`);
-   writes go through `AbstractAction::authorize()` which calls `$user->can("{action} {resource}")`.
-   Both end up on the same permission strings.
+3. Authorization is the controller's alone: every read, write and bulk action goes through Laravel's Gate/Policy
+   (`$this->authorize()`), before validation and before the service. Services, actions, repositories and jobs never authorize
+   and never read the request or the user. Policies end up on the `"{action} {resource}"` permission strings.
 4. Permission names are always `"{action} {resource}"` where resource is the plural snake-cased model name with spaces
    (`BlogPost` → `blog posts`).
 5. Excel is optional per controller: no `$excel` class ⇒ the endpoints 404.

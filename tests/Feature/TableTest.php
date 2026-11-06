@@ -9,6 +9,7 @@ use FancyCrud\Tests\Fixtures\Post;
 use FancyCrud\Tests\Fixtures\PostRepository;
 use FancyCrud\Tests\Fixtures\PostTable;
 use FancyCrud\Tests\Fixtures\PostTableRepository;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 
@@ -308,8 +309,7 @@ describe('filters', function () {
             protected ?string $filters = RepoStatusFilters::class;
         };
 
-        request()->replace(['status' => 'draft']);
-        $ids = $repository->index()->pluck('id')->all();
+        $ids = $repository->withParameters(['status' => 'draft'])->index()->pluck('id')->all();
 
         // RepoStatusFilters ignores the value and always matches 'published'
         expect($ids)->toHaveCount(2);
@@ -359,5 +359,45 @@ describe('column definition', function () {
         $this->crudRestrictedHeaders([]);
 
         tableIndex()->assertForbidden();
+    });
+});
+
+describe('the viewer is an explicit input', function () {
+    it('checks actions for the given user, not for whoever is logged in', function () {
+        // logged in as a fully privileged user (see TestCase), but the row is rendered for a restricted one
+        $table = new PostTable;
+        $columns = $table->selected(['actions']);
+        $viewer = new FancyCrud\Tests\Fixtures\User(['id' => 2], ['update posts']);
+
+        expect($table->row($this->p1, $columns, $viewer)['actions'])->toBe(['show' => false, 'update' => true, 'delete' => false])
+            ->and($table->row($this->p1, $columns, new FancyCrud\Tests\Fixtures\User(['id' => 3], null))['actions'])
+            ->toBe(['show' => true, 'update' => true, 'delete' => true]);
+    });
+
+    it('treats a missing user as a guest', function () {
+        $table = new PostTable;
+
+        expect($table->row($this->p1, $table->selected(['actions']), null)['actions'])
+            ->toBe(['show' => false, 'update' => false, 'delete' => false]);
+    });
+
+    it('hands the user to custom getters and link urls', function () {
+        $column = Column::text('who')->select('title')->valueUsing(fn (Model $row, $user) => $user?->getAuthIdentifier());
+        $link = Column::link('title')->url(fn (Model $row, $user) => "/u/{$user?->getAuthIdentifier()}/posts/{$row->id}");
+        $viewer = new FancyCrud\Tests\Fixtures\User(['id' => 7]);
+
+        expect($column->resolve($this->p1, $viewer))->toBe(7)
+            ->and($column->resolve($this->p1, null))->toBeNull()
+            ->and($link->resolve($this->p1, $viewer))->toBe(['label' => 'Alpha', 'url' => "/u/7/posts/{$this->p1->id}"]);
+    });
+
+    it('keeps rows free of auth() so a table can be rendered from a console command', function () {
+        Illuminate\Support\Facades\Auth::forgetGuards();
+        $table = new PostTable;
+
+        $rows = $table->rows(Post::all(), $table->selected(['title', 'actions']), null);
+
+        expect($rows)->toHaveCount(3)
+            ->and($rows[0]['actions'])->toBe(['show' => false, 'update' => false, 'delete' => false]);
     });
 });
