@@ -6,10 +6,9 @@ use FancyCrud\Actions\Crud\CreateAction;
 use FancyCrud\Actions\Crud\DestroyAction;
 use FancyCrud\Actions\Crud\UpdateAction;
 use FancyCrud\Repositories\BaseRepository;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use FancyCrud\Support\PermissionName;
 
 /**
  * Owns the write side of a resource: create/update/delete orchestration and the
@@ -67,18 +66,7 @@ abstract class BaseCrudService extends BaseService
      */
     public function getPermissionName(string $action): string
     {
-        $modelClass = class_basename($this->getModel());
-        $resource = Str::plural(Str::snake($modelClass, ' '));
-
-        return "$action $resource";
-    }
-
-    /**
-     * Get the authenticated user.
-     */
-    public function getUser(): ?Authenticatable
-    {
-        return $this->user;
+        return PermissionName::for($this->getModel(), $action);
     }
 
     /**

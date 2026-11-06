@@ -21,7 +21,7 @@ class AcceptedLanguagesMiddleware
             $locale = $request->header('Accept-Language', 'en');
         }
 
-        if (! in_array($locale, config('app.supported_locales'))) {
+        if (! in_array($locale, $this->supportedLocales())) {
             $locale = config('app.locale');
         }
 
@@ -31,5 +31,17 @@ class AcceptedLanguagesMiddleware
         }
 
         return $next($request);
+    }
+
+    /**
+     * `fancy-crud.supported_locales`, else the app's `supported_locales`, else just the app locale.
+     *
+     * @return array<int, string>
+     */
+    protected function supportedLocales(): array
+    {
+        return (array) (config('fancy-crud.supported_locales')
+            ?? config('app.supported_locales')
+            ?? [config('app.locale')]);
     }
 }

@@ -31,7 +31,7 @@ class BaseNotification extends Notification
      */
     public function __construct(array $data = [])
     {
-        $this->data = [];
+        $this->data = $data;
         $this->messageEn = '';
         $this->messageAR = '';
         $this->title = '';

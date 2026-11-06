@@ -1,6 +1,8 @@
 <?php
 
+use FancyCrud\Tests\SupportTestCase;
 use FancyCrud\Tests\TestCase;
 
-// Every file under tests/Feature runs on the Testbench app with the fixture CRUD.
+// tests/Feature: Testbench app with the fixture CRUD. tests/Unit: lightweight app with Spatie tables.
 pest()->extend(TestCase::class)->in('Feature');
+pest()->extend(SupportTestCase::class)->in('Unit');

@@ -4,13 +4,15 @@ namespace FancyCrud\Casts;
 
 use GuzzleHttp\Psr7\MimeType;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Casts a stored path (or array of paths) into {url, path, size, extension,
  * mime_type} on read, via the assetUrl() helper (src/helpers.php).
  * On write, accepts a plain path string, or an array of paths/media arrays,
- * and drops any path that doesn't exist on the public disk.
+ * and drops any array entry that doesn't exist on the `fancy-crud.media_disk` disk.
  */
 class MediaCast implements CastsAttributes
 {
@@ -33,14 +35,14 @@ class MediaCast implements CastsAttributes
 
     public function format($path): array
     {
-        $fullPath = storage_path("app/public/{$path}");
-        $fileExists = file_exists($fullPath);
+        $disk = $this->disk();
+        $fileExists = $disk->exists($path);
         $extension = pathinfo($path, PATHINFO_EXTENSION);
 
         return [
             'url' => assetUrl($path),
             'path' => $path,
-            'size' => $fileExists ? round(filesize($fullPath) / 1024) : 0,
+            'size' => $fileExists ? round($disk->size($path) / 1024) : 0,
             'extension' => $extension,
             'mime_type' => $fileExists ? MimeType::fromExtension($extension) : 'unknown',
         ];
@@ -58,13 +60,12 @@ class MediaCast implements CastsAttributes
 
         if (is_array($value)) {
             $result = [];
+            $disk = $this->disk();
+
             foreach ($value as $item) {
                 $path = $item['path'] ?? (is_string($item) ? $item : '');
-                if (empty($path)) {
-                    continue;
-                }
-                $fullPath = storage_path("app/public/{$path}");
-                if (! file_exists($fullPath)) {
+
+                if (empty($path) || ! $disk->exists($path)) {
                     continue;
                 }
 
@@ -75,5 +76,10 @@ class MediaCast implements CastsAttributes
         }
 
         return null;
+    }
+
+    protected function disk(): Filesystem
+    {
+        return Storage::disk(config('fancy-crud.media_disk', 'public'));
     }
 }

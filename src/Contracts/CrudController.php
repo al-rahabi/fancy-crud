@@ -73,7 +73,6 @@ abstract class CrudController extends Controller implements Exportable, Importab
      * Supervisor/Parent, all App\Models\Dashboard\Auth\User) can swap this
      * for a bare permission-string check instead — a Policy keyed on a
      * shared model would gate every account kind through the same check.
-     * See .ai/rules/controllers.md.
      */
     protected function authorizeIndex(): void
     {

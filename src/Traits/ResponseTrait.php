@@ -19,16 +19,16 @@ trait ResponseTrait
 
     public function success(mixed $data = [], int $statusCode = 200, ?string $message = null, array $meta = []): JsonResponse
     {
-        return $this->response($data, $statusCode, $message ?? __('messages.success'), $meta);
+        return $this->response($data, $statusCode, $message ?? __('fancy-crud::messages.success'), $meta);
     }
 
     public function error(mixed $data = [], int $statusCode = 400, ?string $message = null): JsonResponse
     {
-        return $this->response($data, $statusCode, $message ?? __('messages.error'));
+        return $this->response($data, $statusCode, $message ?? __('fancy-crud::messages.error'));
     }
 
     public function notFound(?string $message = null): JsonResponse
     {
-        return $this->error(null, 404, $message ?? __('messages.not_found'));
+        return $this->error(null, 404, $message ?? __('fancy-crud::messages.not_found'));
     }
 }

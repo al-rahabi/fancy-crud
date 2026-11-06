@@ -5,7 +5,7 @@ namespace FancyCrud\Contracts;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use FancyCrud\Support\PermissionName;
 
 class BasePolicy
 {
@@ -16,10 +16,7 @@ class BasePolicy
     public function __construct()
     {
         if (! isset($this->resource)) {
-            $modelClass = class_basename(static::class);
-            $modelClass = str_replace('Policy', '', $modelClass);
-            $modelClass = Str::plural(Str::snake($modelClass, ' '));
-            $this->resource = $modelClass;
+            $this->resource = PermissionName::resource(str_replace('Policy', '', class_basename(static::class)));
         }
     }
 

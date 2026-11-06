@@ -2,6 +2,7 @@
 
 namespace FancyCrud;
 
+use FancyCrud\Console\SyncPermissionsCommand;
 use Illuminate\Support\ServiceProvider;
 
 class FancyCrudServiceProvider extends ServiceProvider
@@ -16,6 +17,8 @@ class FancyCrudServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'fancy-crud');
 
         if ($this->app->runningInConsole()) {
+            $this->commands([SyncPermissionsCommand::class]);
+
             $this->publishes([
                 __DIR__.'/../config/fancy-crud.php' => config_path('fancy-crud.php'),
             ], 'fancy-crud-config');

@@ -28,6 +28,6 @@ trait Activable
 
     public function toggleActive(): bool
     {
-        return $this->update([$this->activeColumnName() => ! $this->activeColumnName()]);
+        return $this->update([$this->activeColumnName() => ! $this->{$this->activeColumnName()}]);
     }
 }

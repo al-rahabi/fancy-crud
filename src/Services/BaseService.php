@@ -10,7 +10,7 @@ abstract class BaseService
 
     protected string $platform = '';
 
-    protected ?Authenticatable $user;
+    protected ?Authenticatable $user = null;
 
     public function __construct(string $platform = '')
     {
@@ -25,11 +25,12 @@ abstract class BaseService
     protected function initialize(): void {}
 
     /**
-     * Get authenticated user.
+     * The authenticated user of `$guard`. Resolved lazily, so a service built
+     * before login (or a long-lived one) still sees the current user.
      */
     public function getUser(): ?Authenticatable
     {
-        return $this->user;
+        return $this->user ??= auth($this->guard)->user();
     }
 
     public static function instance(string $platform = ''): static
