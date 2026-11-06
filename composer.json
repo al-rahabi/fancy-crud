@@ -1,5 +1,5 @@
 {
-    "name": "fancycrud/fancy-crud",
+    "name": "MohAlRahabi/fancy-crud",
     "description": "Opinionated abstract building blocks (controllers, services, repositories, actions, policies, resources) for well-structured Laravel CRUD projects.",
     "keywords": ["laravel", "crud", "repository", "service", "actions", "package"],
     "type": "library",
