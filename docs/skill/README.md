@@ -17,8 +17,8 @@ php artisan vendor:publish --tag=fancy-crud-skills    # → .claude/skills/fancy
 
 **Use directly** without publishing: copy or symlink the folder
 ```bash
-cp -r vendor/fancycrud/fancy-crud/resources/skills/fancy-crud .claude/skills/        # project only
-cp -r vendor/fancycrud/fancy-crud/resources/skills/fancy-crud ~/.claude/skills/      # all projects
+cp -r vendor/al-rahabi/fancy-crud/resources/skills/fancy-crud .claude/skills/        # project only
+cp -r vendor/al-rahabi/fancy-crud/resources/skills/fancy-crud ~/.claude/skills/      # all projects
 ```
 Re-publish (`--force`) after upgrading the package to pick up rule changes.
 

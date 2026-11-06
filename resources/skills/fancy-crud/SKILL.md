@@ -1,11 +1,11 @@
 ---
 name: fancy-crud
-description: Code rules and templates for Laravel apps built on fancycrud/fancy-crud. Use whenever you create or change a controller, service, action, repository, form request, resource, policy, table, filter, bulk action or test that extends FancyCrud classes. Enforces thin controllers, authorization and before/after logic in the controller, request-free and user-free services, validated input only, no N+1 queries, strong typing, security basics, Pest tests and documentation.
+description: Code rules and templates for Laravel apps built on al-rahabi/fancy-crud. Use whenever you create or change a controller, service, action, repository, form request, resource, policy, table, filter, bulk action or test that extends FancyCrud classes. Enforces thin controllers, authorization and before/after logic in the controller, request-free and user-free services, validated input only, no N+1 queries, strong typing, security basics, Pest tests and documentation.
 ---
 
 # FancyCrud code rules
 
-Follow these rules for every piece of code you generate or modify with `fancycrud/fancy-crud`. If a rule and the user's
+Follow these rules for every piece of code you generate or modify with `al-rahabi/fancy-crud`. If a rule and the user's
 explicit instruction conflict, follow the user and say which rule you broke. Templates: [references/templates.md](references/templates.md).
 
 ## 1. Who does what

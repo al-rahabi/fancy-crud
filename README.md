@@ -5,7 +5,7 @@ Abstract building blocks for well-structured Laravel projects: base controllers,
 ## Install
 
 ```bash
-composer require fancycrud/fancy-crud
+composer require al-rahabi/fancy-crud
 php artisan vendor:publish --tag=fancy-crud-config
 ```
 

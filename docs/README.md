@@ -1,6 +1,6 @@
 # FancyCrud — documentation index
 
-FancyCrud (`fancycrud/fancy-crud`, namespace `FancyCrud\`) is a Laravel **library of abstract building blocks** for
+FancyCrud (`al-rahabi/fancy-crud`, namespace `FancyCrud\`) is a Laravel **library of abstract building blocks** for
 JSON CRUD APIs: controller → service → action → repository, plus policies, form requests, API resources, Excel
 import/export, a declarative Pest test generator, and Spatie-permission syncing.
 It ships no routes, models or migrations: the host app extends the base classes.

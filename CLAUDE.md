@@ -1,6 +1,6 @@
 # CLAUDE.md — FancyCrud
 
-Laravel **package** (`fancycrud/fancy-crud`, namespace `FancyCrud\`, PHP ^8.3, Laravel 11–13): abstract building blocks for JSON CRUD APIs.
+Laravel **package** (`al-rahabi/fancy-crud`, namespace `FancyCrud\`, PHP ^8.3, Laravel 11–13): abstract building blocks for JSON CRUD APIs.
 It has no routes/models/migrations; host apps extend the base classes. Full docs live in [`docs/`](docs/README.md) — read the relevant
 group doc before changing code in that group.
 
