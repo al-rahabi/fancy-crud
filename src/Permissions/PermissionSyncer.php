@@ -101,9 +101,9 @@ class PermissionSyncer
             $roleClass::findOrCreate($mainRole, $guard)->syncPermissions($permissions);
         }
 
-        // 4. extra roles
+        // 4. extra roles hold exactly their configured permissions (removed ones are revoked)
         foreach ($definition['roles'] ?? [] as $name => $granted) {
-            $roleClass::findOrCreate($name, $guard)->givePermissionTo(
+            $roleClass::findOrCreate($name, $guard)->syncPermissions(
                 $granted === ['*'] || $granted === '*'
                     ? $permissions
                     : collect((array) $granted)->map(

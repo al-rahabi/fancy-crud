@@ -55,7 +55,7 @@ Without a table nothing changes (Resource path, `$indexRelation`, `$indexCountRe
    Order follows the request; unknown or duplicate names are ignored; if none is valid the defaults are used. `fields` (like every index parameter) is validated by
    `BaseIndexRequest` and handed to the repository with `withParameters()`; the repository never reads the request.
 3. Filters (`?status=published&author_name=Ann`), ordering (`?order_by[0][name]=title&order_by[0][direction]=desc`), `?search=`,
-   `?per_page=`, `?unlimited=1` and `?forced_items[]=` work as for any index.
+   `?per_page=` (≤ `$maxLimit`), `?unlimited=1` (when `$allowUnlimited`) and `?forced_items[]=` work as for any index.
 
 Response:
 

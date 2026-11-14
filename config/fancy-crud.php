@@ -33,7 +33,8 @@ return [
     |  - main_role: per-guard name of its main role (default: `main_role` below); false disables it
     |
     | Syncing a guard (1) create-or-updates each permission, (2) DELETES every permission of that
-    | guard whose id was not just created/updated, (3) gives the guard's main role ALL its permissions.
+    | guard whose id was not just created/updated, (3) gives the guard's main role ALL its permissions,
+    | (4) syncs each extra role to exactly its listed permissions (removed ones are revoked).
     */
     'permissions' => [
         'main_role' => 'admin', // every guard gets this role holding all of its permissions

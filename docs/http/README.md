@@ -55,7 +55,7 @@ The fixtures use `->parameters(['posts' => 'id'])` so the route parameter is nam
 
 ## `BaseIndexRequest` / `BaseBulkRequest` (extend `FormRequest`)
 Nothing reads the raw request: the controller passes only validated values on.
-- `BaseIndexRequest` validates `per_page` (int ≥ 1), `unlimited` (bool), `search` (string ≤ 255), `fields` (string or list of strings),
+- `BaseIndexRequest` validates `per_page` (int ≥ 1; the repository clamps it to `$maxLimit`), `unlimited` (bool; honoured only with `$allowUnlimited`), `search` (string ≤ 255), `fields` (string or list of strings),
   `order_by.*.name` / `order_by.*.direction` (`asc|desc`) and, through `CrudController::indexRules()`, one rule set per declared filter
   (`Filter::rules()`, default `nullable`; `forced_items` is `nullable|array`). Keys without a rule never reach the repository. The route's
   controller is found with `$this->route()->getController()`, so the request needs no wiring; subclass it to add rules.
@@ -65,7 +65,8 @@ Nothing reads the raw request: the controller passes only validated values on.
 ## `BaseRequest` (extends `FormRequest`)
 `rules()` dispatches on HTTP method: `POST → storeRules()`, `PUT → updateRules()`, `PATCH → patchRules()`, else `commonRules()`.
 `storeRules`/`updateRules` default to `commonRules()`. `patchRules()` derives from `updateRules()` by dropping `required`
-(array rules) or replacing it with `nullable` (string rules). Override `commonRules()` for shared rules.
+(array rules) or replacing it with `nullable` (string rules); only the exact `required` token is touched, so rule objects,
+closures and `required_if:…`-style rules pass through unchanged. Override `commonRules()` for shared rules.
 
 ## `BaseResource` (extends `JsonResource`)
 `toArray()` = `toDefaultArray()` + (when detailed) `toDetailedArray()` + `abilities()` (added only when non-empty).

@@ -45,6 +45,8 @@ Owns the **read** side. Configuration properties:
 | `$model` | `Model::class` | Eloquent class |
 | `$paginated` | `true` | paginate index |
 | `$limit` | `10` | page size, overridden by `?per_page=` |
+| `$maxLimit` | `100` | upper bound for `?per_page=` (larger values are clamped) |
+| `$allowUnlimited` | `false` | let `?unlimited=1` skip pagination (opt-in; ignored otherwise) |
 | `$indexRelation` / `$indexCountRelation` | `[]` | `with()` / `withCount()` for index |
 | `$showRelation` / `$showCountRelation` | `[]` | extra for show (show relations are merged with index relations) |
 
@@ -67,7 +69,8 @@ The repository never reads the request. `CrudController::index()` calls `withPar
 
 ### Search
 `applySearch`: if `?search=` present, `OR … LIKE %term%` over `searchableArray()` (defaults to the model's `$fillable`);
-`relation.field` entries search through `orWhereRelation`; also `orWhere(table.id = term)`.
+`relation.field` entries search through `orWhereRelation`; also `orWhere(table.key = term)` (for int keys only when the term is digits).
+All ORs live inside one `where(…)` group, so search only narrows the filtered/scoped query and never escapes it.
 
 ### Filters
 Filters are classes: extend `FancyCrud\Filters\BaseFilters`, return `Filter` objects from `filters()`, and set the repository's

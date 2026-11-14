@@ -12,8 +12,8 @@ All controllers extend `FancyCrud\Contracts\CrudController`; the constructor cal
 1b. `indexParameters()` = `app($indexRequest)->validated()` (`BaseIndexRequest`: `per_page`, `unlimited`, `search`, `fields`, `order_by`, filter values) →
    `$repository->withParameters($params)`. The repository reads only these, never the request.
 2. `BaseRepository::index()`: `globalQuery()->with(getRelations())->withCount(getCountRelations())`
-   → `applyFilters` → `applySearch` → `applyOrder` → paginate (`per_page` request key, default `$limit = 10`)
-   or `get()` when `$paginated = false` or `?unlimited=1`.
+   → `applyFilters` → `applySearch` → `applyOrder` → paginate (`per_page` request key, default `$limit = 10`, clamped to `$maxLimit = 100`)
+   or `get()` when `$paginated = false` or `?unlimited=1` (only if the repository sets `$allowUnlimited = true`).
 3. `BaseResource::makeCollection(items, user, detailed=false, platform)`.
 4. Response `data` = items; `meta` = `current_page,total,per_page,last_page,pages_count` for paginators.
 

@@ -31,14 +31,22 @@ class BaseRequest extends FormRequest
         return $this->commonRules();
     }
 
+    /**
+     * `updateRules()` with the bare `required` rule removed (array rules) or
+     * turned into `nullable` (string rules). Only the exact `required` token is
+     * touched, so `required_if:…` and rule objects / closures pass through as-is.
+     */
     public function patchRules(): array
     {
         $patchRules = [];
         foreach ($this->updateRules() as $key => $rule) {
-            if (is_array($rule) && in_array('required', $rule)) {
-                $rule = array_diff($rule, ['required']);
-            } elseif (is_string($rule) && str_contains($rule, 'required')) {
-                $rule = str_replace('required', 'nullable', $rule);
+            if (is_array($rule)) {
+                $rule = array_values(array_filter($rule, fn (mixed $item): bool => $item !== 'required'));
+            } elseif (is_string($rule)) {
+                $rule = implode('|', array_map(
+                    fn (string $item): string => $item === 'required' ? 'nullable' : $item,
+                    explode('|', $rule)
+                ));
             }
             $patchRules[$key] = $rule;
         }

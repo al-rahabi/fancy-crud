@@ -1,7 +1,9 @@
 <?php
 
+use FancyCrud\Actions\Crud\AbstractAction;
 use FancyCrud\Casts\MediaCast;
 use FancyCrud\Contracts\BaseNotification;
+use FancyCrud\Contracts\BaseRequest;
 use FancyCrud\Middleware\AcceptedLanguagesMiddleware;
 use FancyCrud\Support\PermissionName;
 use FancyCrud\Tests\Unit\Fixtures\BlogPost;
@@ -12,6 +14,8 @@ use FancyCrud\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 
 it('toggles the active flag both ways', function () {
     $toggle = Toggle::create(['is_active' => false]);
@@ -35,7 +39,7 @@ it('keeps services free of users, authorization and hooks', function () {
     foreach (['getUser', 'getPermissionName', 'beforeStore', 'afterStore', 'beforeUpdate', 'afterUpdate', 'beforeDelete', 'afterDelete', 'beforeSave', 'afterSave'] as $method) {
         expect(method_exists($service, $method))->toBeFalse("$method should not exist on a service");
     }
-    expect(method_exists(FancyCrud\Actions\Crud\AbstractAction::class, 'authorize'))->toBeFalse();
+    expect(method_exists(AbstractAction::class, 'authorize'))->toBeFalse();
 });
 
 it('uses the fancy-crud message namespace for response messages', function () {
@@ -83,4 +87,26 @@ it('checks media on the configured disk', function () {
 
     $media = $cast->get($model, 'f', '"a/one.png"', []);
     expect($media)->toMatchArray(['path' => 'a/one.png', 'extension' => 'png', 'mime_type' => 'image/png']);
+});
+
+it('derives patch rules without choking on rule objects or required_* rules', function () {
+    $request = new class extends BaseRequest
+    {
+        public function updateRules(): array
+        {
+            return [
+                'email' => ['required', 'email', Rule::unique('users', 'email'), fn ($a, $v, $fail) => null],
+                'name' => 'required|string',
+                'reason' => 'required_if:status,closed|string',
+            ];
+        }
+    };
+
+    $rules = $request->patchRules();
+
+    expect($rules['email'])->toHaveCount(3)
+        ->and($rules['email'][0])->toBe('email')
+        ->and($rules['email'][1])->toBeInstanceOf(Unique::class)
+        ->and($rules['name'])->toBe('nullable|string')
+        ->and($rules['reason'])->toBe('required_if:status,closed|string');
 });

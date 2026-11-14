@@ -56,4 +56,4 @@ Bind a directory in `tests/Pest.php`: `pest()->extend(CrudTestCase::class)->in('
 - `tests/Feature/BulkActionTest.php`: bulk actions (`PublishBulkAction` query, `DeleteBulkAction` sync, `ArchiveBulkAction` job) — selection kinds and their
   validation, extra data, the three modes (`Queue::fake()` and the sync queue), authorization, 404 without actions.
 - `TestCase` also creates `authors`/`comments` tables and extra `posts` columns (`status`, `is_active`, `image`, `meta`, `author_id`); route `posts/bulk`
-  (no actions ⇒ 404) and `table-posts` (+ `/bulk`). Run `composer test` for the current total (110 tests).
+  (no actions ⇒ 404) and `table-posts` (+ `/bulk`). Run `composer test` for the current total (139 tests).

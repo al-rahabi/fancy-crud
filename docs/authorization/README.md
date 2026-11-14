@@ -27,7 +27,8 @@ Keeps the DB permissions of each guard identical to the config definition. `sync
 2. **delete** every permission of that guard whose id is not in the collected ids (other guards are untouched);
 3. give the guard's **main role** (default name `fancy-crud.permissions.main_role` = `admin`; per guard `main_role`, `false` disables)
    *all* those permissions (`syncPermissions`);
-4. create the extra `roles` (`'*'` = every permission of the guard, otherwise a list of names).
+4. create the extra `roles` and `syncPermissions` them (`'*'` = every permission of the guard, otherwise a list of names) —
+   a permission removed from a role's list is revoked on the next sync.
 
 ```php
 $syncer = app(\FancyCrud\Permissions\PermissionSyncer::class);

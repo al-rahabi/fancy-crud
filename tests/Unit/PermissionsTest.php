@@ -62,6 +62,14 @@ it('deletes permissions of the guard that are no longer defined', function () {
         ->and(Role::findByName('admin', 'web')->permissions->pluck('name')->all())->toBe(['index posts']);
 });
 
+it('revokes permissions removed from an extra role', function () {
+    $syncer = app(PermissionSyncer::class);
+    $syncer->syncGuard('web', ['resources' => ['posts'], 'roles' => ['editor' => ['index posts', 'show posts']]]);
+    $syncer->syncGuard('web', ['resources' => ['posts'], 'roles' => ['editor' => ['index posts']]]);
+
+    expect(Role::findByName('editor', 'web')->permissions->pluck('name')->all())->toBe(['index posts']);
+});
+
 it('can disable the main role for a guard', function () {
     app(PermissionSyncer::class)->syncGuard('web', ['resources' => ['posts'], 'main_role' => false]);
 

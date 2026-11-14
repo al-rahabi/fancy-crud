@@ -26,6 +26,17 @@ abstract class BaseRepository
 
     protected int $limit = 10;
 
+    /**
+     * Upper bound for `?per_page=`; larger values are clamped to it.
+     */
+    protected int $maxLimit = 100;
+
+    /**
+     * Whether `?unlimited=1` may skip pagination. Off by default so a client
+     * cannot dump a whole table; enable it only for small, bounded resources.
+     */
+    protected bool $allowUnlimited = false;
+
     protected array $indexRelation = [];
 
     protected array $indexCountRelation = [];
@@ -146,11 +157,14 @@ abstract class BaseRepository
     }
 
     /**
-     * Pagination limit, overridable per request via `per_page`.
+     * Pagination limit, overridable per request via `per_page`, clamped to
+     * `1..$maxLimit`.
      */
     public function getLimit(): int
     {
-        return (int) ($this->parameters['per_page'] ?? $this->limit);
+        $limit = (int) ($this->parameters['per_page'] ?? $this->limit);
+
+        return max(1, min($limit, $this->maxLimit));
     }
 
     /**
@@ -191,9 +205,12 @@ abstract class BaseRepository
         return $this->paginated;
     }
 
+    /**
+     * `?unlimited=1`, honoured only when `$allowUnlimited` is true.
+     */
     public function forceUnlimited(): bool
     {
-        return filter_var($this->parameters['unlimited'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        return $this->allowUnlimited && filter_var($this->parameters['unlimited'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -341,8 +358,11 @@ abstract class BaseRepository
             return $query;
         }
 
-        $table = (new ($this->getModel()))->getTable();
-        $query->where(function (Builder $subQuery) use ($keyword, $table): void {
+        $model = new ($this->getModel());
+        $table = $model->getTable();
+        // Everything stays in one group so the ORs never escape the filters and
+        // scopes already on the query: `… AND (a LIKE ? OR b LIKE ? OR id = ?)`.
+        $query->where(function (Builder $subQuery) use ($keyword, $table, $model): void {
             foreach ($this->searchableArray() as $fieldName) {
                 if (str_contains($fieldName, '.')) {
                     [$relation, $field] = explode('.', $fieldName);
@@ -358,8 +378,11 @@ abstract class BaseRepository
                     $subQuery->orWhere("$table.$fieldName", 'LIKE', "%{$keyword}%");
                 }
             }
+
+            if ($model->getKeyType() !== 'int' || ctype_digit($keyword)) {
+                $subQuery->orWhere($model->getQualifiedKeyName(), $keyword);
+            }
         });
-        $query->orWhere("$table.id", $keyword);
 
         return $query;
     }

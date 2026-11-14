@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use FancyCrud\Tests\Fixtures\HookedPostController;
 use FancyCrud\Tests\Fixtures\Post;
+use FancyCrud\Tests\Fixtures\PostRepository;
 use FancyCrud\Tests\Fixtures\PostService;
+use FancyCrud\Tests\Fixtures\PostTableRepository;
 use Illuminate\Support\Facades\Auth;
 
 beforeEach(function () {
@@ -120,17 +122,51 @@ describe('index parameters are validated before the repository sees them', funct
         Post::create(['title' => 'Gamma']);
 
         expect($this->getJson('/api/table-posts?per_page=2')->json('data'))->toHaveCount(2)
-            ->and($this->getJson('/api/table-posts?per_page=1&unlimited=1')->json('data'))->toHaveCount(3)
+            ->and($this->getJson('/api/table-posts?per_page=1&unlimited=1')->json('data'))->toHaveCount(1) // unlimited is opt-in
             ->and($this->getJson('/api/table-posts?unlimited=0&per_page=2')->json('data'))->toHaveCount(2);
+    });
+
+    it('honours unlimited only when the repository allows it', function () {
+        Post::create(['title' => 'Alpha']);
+        Post::create(['title' => 'Beta']);
+
+        $allowing = new class extends PostRepository
+        {
+            protected bool $allowUnlimited = true;
+        };
+
+        expect($allowing->withParameters(['per_page' => 1, 'unlimited' => true])->index())->toHaveCount(2)
+            ->and((new PostRepository)->withParameters(['per_page' => 1, 'unlimited' => true])->forceUnlimited())->toBeFalse();
+    });
+
+    it('clamps per_page to the repository maximum', function () {
+        $repository = new PostRepository;
+
+        expect($repository->withParameters(['per_page' => 100000])->getLimit())->toBe(100)
+            ->and($repository->withParameters(['per_page' => 25])->getLimit())->toBe(25)
+            ->and($this->getJson('/api/table-posts?per_page=5000')->json('meta.per_page'))->toBe(100);
+    });
+
+    it('keeps the search id match inside the filters', function () {
+        $hidden = Post::create(['title' => 'Hidden']);
+        Post::create(['title' => 'Visible']);
+
+        $repository = (new PostRepository)->withParameters([
+            'title' => 'Visible',
+            'search' => (string) $hidden->id,
+        ]);
+
+        // `title = Visible AND (… OR id = hidden)` — the id match must not escape the filter
+        expect($repository->index())->toHaveCount(0);
     });
 
     it('never reads values that no rule declares', function () {
         Post::create(['title' => 'Alpha']);
 
-        $repository = (new FancyCrud\Tests\Fixtures\PostTableRepository)->withParameters(['title' => 'nope']);
+        $repository = (new PostTableRepository)->withParameters(['title' => 'nope']);
 
         // `title` is a declared filter of the table, so it applies; an undeclared key does not
         expect($repository->index())->toHaveCount(0)
-            ->and((new FancyCrud\Tests\Fixtures\PostTableRepository)->withParameters(['body' => 'nope'])->index())->toHaveCount(1);
+            ->and((new PostTableRepository)->withParameters(['body' => 'nope'])->index())->toHaveCount(1);
     });
 });
